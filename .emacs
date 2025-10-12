@@ -1,0 +1,137 @@
+;;; Initialize package system
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+
+;; Bootstrap `use-package`
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+;;IDO-MODE
+;;(ido-mode 1)
+;;(ido-everywhere 1)
+;;(setq ido-auto-merge-work-directories-length -1)
+
+;; Set custom file
+(setq custom-file "~/.emacs.custom.el")
+(load custom-file 'noerror)
+
+;; Add local load path
+(add-to-list 'load-path "~/.emacs.local/")
+
+;; Enable electric pair mode
+(electric-pair-mode 1)
+
+;;; Appearance
+(defun rc/get-default-font ()
+  (cond
+   ((eq system-type 'gnu/linux) "Iosevka-20")))
+
+(add-to-list 'default-frame-alist `(font . ,(rc/get-default-font)))
+
+(global-display-line-numbers-mode 1)
+
+;; Evil mode
+(use-package evil
+  :ensure t
+  :config
+  (evil-mode 1))
+
+;; Font settings
+(set-face-attribute 'default nil :family "JetBrains Mono" :height 250)
+
+;; UI settings
+(tool-bar-mode 0)
+(menu-bar-mode 0)
+(scroll-bar-mode 0)
+(column-number-mode 1)
+(show-paren-mode 1)
+(setq inhibit-startup-screen t)
+(setq ring-bell-function 'ignore)
+
+;; Theme
+(use-package gruber-darker-theme
+  :ensure t
+  :config
+  (load-theme 'gruber-darker t))
+
+;; Optional Zenburn theme (uncomment if needed)
+;; (use-package zenburn-theme
+;;   :ensure t
+;;   :config
+;;   (load-theme 'zenburn t)
+;;   (set-face-attribute 'line-number nil :inherit 'default))
+
+;;; C mode
+(setq-default c-basic-offset 4
+              c-default-style '((java-mode . "java")
+                                (awk-mode . "awk")
+                                (other . "bsd")))
+
+(add-hook 'c-mode-hook
+          (lambda ()
+            (interactive)
+            (c-toggle-comment-style -1)))
+
+;;; Emacs Lisp
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c C-j") 'eval-print-last-sexp)))
+(add-to-list 'auto-mode-alist '("Cask" . emacs-lisp-mode))
+
+;;; Word wrap
+(defun rc/enable-word-wrap ()
+  (interactive)
+  (toggle-word-wrap 1))
+
+(add-hook 'markdown-mode-hook 'rc/enable-word-wrap)
+
+;;; nXML mode
+(add-to-list 'auto-mode-alist '("\\.html\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.xsd\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.ant\\'" . nxml-mode))
+
+;;; TRAMP
+(setq tramp-auto-save-directory "/tmp")
+
+;;; ElDoc mode
+(defun rc/turn-on-eldoc-mode ()
+  (interactive)
+  (eldoc-mode 1))
+
+(add-hook 'emacs-lisp-mode-hook 'rc/turn-on-eldoc-mode)
+
+;;; LaTeX mode
+(add-hook 'tex-mode-hook
+          (lambda ()
+            (add-to-list 'tex-verbatim-environments "code")))
+(setq font-latex-fontify-sectioning 'color)
+
+;;; Ebisp
+(add-to-list 'auto-mode-alist '("\\.ebi\\'" . lisp-mode))
+
+;;; Astyle for formatting
+(defun astyle-buffer (&optional justify)
+  (interactive)
+  (let ((saved-line-number (line-number-at-pos)))
+    (shell-command-on-region
+     (point-min)
+     (point-max)
+     "astyle --style=kr"
+     nil
+     t)
+    (goto-line saved-line-number)))
+
+(add-hook 'simpc-mode-hook
+          (lambda ()
+            (setq-local fill-paragraph-function 'astyle-buffer)))
+
+;;; Compilation
+(require 'compile)
+(add-to-list 'compilation-error-regexp-alist
+             '("\\([a-zA-Z0-9\\.]+\\)(\\([0-9]+\\)\\(,\\([0-9]+\\)\\)?) \\(Warning:\\)?"
+               1 2 (4) (5)))
