@@ -34,6 +34,7 @@
 (add-to-list 'default-frame-alist `(font . ,(rc/get-default-font)))
 
 (global-display-line-numbers-mode 1)
+(add-hook 'emacs-startup-hook #'toggle-frame-maximized)
 
 ;; Evil mode
 (use-package evil
