@@ -11,6 +11,27 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+;;Config particular
+(defun display-warning (&rest _args) nil)
+(setq warning-minimum-level :emergency)
+
+(use-package vertico
+  :ensure t
+  :init (vertico-mode))
+
+(use-package consult
+  :ensure t
+  :bind (("C-s" . consult-line)
+         ("C-c h" . consult-history)
+         ("C-x 8" . consult-imenu)
+	 ("C-c f" . consult-find)
+	 ("C-c r" . consult-ripgrep))
+  :init (consult-preview-at-point-mode))
+
+(use-package orderless
+  :ensure t
+  :custom (completion-styles '(orderless)))
+
 ;;IDO-MODE
 ;;(ido-mode 1)
 ;;(ido-everywhere 1)
