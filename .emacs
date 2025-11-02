@@ -32,6 +32,13 @@
   :ensure t
   :custom (completion-styles '(orderless)))
 
+;; VERTICO for enhanced minibuffer completion
+(use-package vertico
+  :init
+  (vertico-mode)
+  :config
+  (setq vertico-cycle t))
+
 ;;IDO-MODE
 ;;(ido-mode 1)
 ;;(ido-everywhere 1)
