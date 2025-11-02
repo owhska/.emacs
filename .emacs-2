@@ -69,6 +69,13 @@
   :config
   (setq vertico-cycle t))
 
+;; MARGINALIA for documentation and context in vertico popups
+(use-package marginalia
+  :after vertico
+  :init
+  (marginalia-mode))
+
+
 ;; Evil mode
 (use-package evil
   :ensure t
