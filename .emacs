@@ -39,6 +39,13 @@
   :config
   (setq vertico-cycle t))
 
+;; MARGINALIA for documentation and context in vertico popups
+(use-package marginalia
+  :after vertico
+  :init
+  (marginalia-mode))
+
+
 ;;IDO-MODE
 ;;(ido-mode 1)
 ;;(ido-everywhere 1)
