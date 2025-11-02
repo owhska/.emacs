@@ -15,6 +15,10 @@
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
 
+;; === TRANSPARÊNCIA ===
+(add-to-list 'default-frame-alist '(alpha . (92 . 87)))
+(set-frame-parameter nil 'alpha '(92 . 87))
+
 (use-package vertico
   :ensure t
   :init (vertico-mode))
