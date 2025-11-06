@@ -95,10 +95,10 @@
 (setq ring-bell-function 'ignore)
 
 ;; Theme
-(use-package gruber-darker-theme
+(use-package srcery-theme
   :ensure t
   :config
-  (load-theme 'gruber-darker t))
+  (load-theme 'srcery t))
 
 ;; Optional Zenburn theme (uncomment if needed)
 ;; (use-package zenburn-theme
