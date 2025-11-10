@@ -132,10 +132,19 @@
   (lambda ()
     (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))  ; Tamanho menor = mais rápido
 
-;; Line numbers - APENAS quando necessário
-(run-with-idle-timer 2 nil
-  (lambda ()
-    (add-hook 'prog-mode-hook 'display-line-numbers-mode)))
+;;; === NUMERAÇÃO DE LINHAS INTELIGENTE ===
+;; Ativar apenas em modos de programação e texto
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'text-mode-hook 'display-line-numbers-mode)
+
+;; Desativar em modos onde não é útil
+(add-hook 'dired-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'shell-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'eshell-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'compilation-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'help-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'info-mode-hook (lambda () (display-line-numbers-mode -1)))
 
 ;; Maximizar - ADIAR
 (run-with-idle-timer 1 nil 'toggle-frame-maximized)
