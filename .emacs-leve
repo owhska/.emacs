@@ -1,34 +1,51 @@
 ;;; === CONFIGURAÇÕES CRÍTICAS DE PERFORMANCE ===
-;; Otimizações que devem vir ANTES de tudo
-(setq gc-cons-threshold 100000000)  ; 100MB durante carregamento
-(setq read-process-output-max (* 4 1024 1024))  ; 4MB para I/O
+;; Otimizações RADICAIS que devem vir ANTES de tudo
+(setq gc-cons-threshold 200000000)  ; 200MB durante carregamento
+(setq read-process-output-max (* 8 1024 1024))  ; 8MB para I/O
 (setq inhibit-startup-screen t)
 (setq inhibit-startup-message t)
 (setq inhibit-startup-echo-area-message t)
 (setq initial-major-mode 'fundamental-mode)
 (setq initial-scratch-message nil)
+(setq message-log-max 1000)  ; Limitar logs
 
-;; Interface mínima desde o início
+;; Performance de UI radical
+(setq idle-update-delay 1.0)
+(setq redisplay-skip-fontification-on-input t)
+(setq auto-window-vscroll nil)
+(setq fast-but-imprecise-scrolling t)
+(setq jit-lock-stealth-time 5)
+(setq jit-lock-defer-time 0.5)
+
+;; Interface mínima ULTRA radical
 (tool-bar-mode -1)
 (menu-bar-mode -1) 
 (scroll-bar-mode -1)
 (setq visible-bell nil)
 (setq ring-bell-function 'ignore)
+(setq use-dialog-box nil)
+(setq use-file-dialog nil)
 
-;;; === SISTEMA DE PACOTES (Otimizado) ===
+;;; === SISTEMA DE PACOTES (Turbo) ===
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(package-initialize)
+(let ((timeout 10))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+  (package-initialize)
 
-;; Bootstrap use-package rápido
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+  ;; Bootstrap use-package ULTRA rápido
+  (unless (package-installed-p 'use-package)
+    (with-timeout (timeout (message "Timeout package refresh"))
+      (package-refresh-contents)))
+  
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package)))
 
 (require 'use-package)
 (setq use-package-always-ensure t)
+(setq use-package-expand-minimally t)  ; 👈 CRÍTICO para performance
+(setq use-package-enable-imenu-support nil)
 
-;;; === CONFIGURAÇÕES PESSOAIS (Leves) ===
+;;; === CONFIGURAÇÕES PESSOAIS (Mínimas) ===
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
 (global-set-key [C-tab] 'other-window)
@@ -40,237 +57,200 @@
 ;; Transparência
 (add-to-list 'default-frame-alist '(alpha . (92 . 87)))
 
-;;; === PACOTES COM CARREGAMENTO TARDIO INTELIGENTE ===
+;;; === PACOTES COM CARREGAMENTO ULTRA TARDIO ===
 
-;; Evil mode - carregar primeiro mas de forma otimizada
+;; Evil mode - apenas o essencial
 (use-package evil
   :ensure t
-  :demand t  ; Precisamos dele logo
+  :demand t
   :config
   (evil-mode 1)
-  ;; Otimizações específicas do evil
+  ;; MÍNIMO de configurações
   (setq evil-want-fine-undo t)
-  (setq evil-search-module 'evil-search)
-  (setq evil-ex-complete-emacs-commands nil))
+  (setq evil-search-module 'evil-search))
 
-;; Vertico - completion rápido
+;; Vertico - config mínimo
 (use-package vertico
   :ensure t
-  :init
-  (vertico-mode)
+  :init (vertico-mode)
   :config
   (setq vertico-cycle t)
-  (setq vertico-count 10)  ; Menos resultados = mais rápido
-  (setq vertico-resize nil))
+  (setq vertico-count 8))  ; Ainda menos resultados
 
-;; Consult - buscar sob demanda
+;; Consult - carregamento MUITO tardio
 (use-package consult
   :ensure t
-  :defer 1  ; Carregar após 1 segundo de inatividade
+  :defer 3  ; 3 segundos após inatividade
   :bind (("C-s" . consult-line)
          ("C-c h" . consult-history)
          ("C-x 8" . consult-imenu)
          ("C-c f" . consult-find)
-         ("C-c r" . consult-ripgrep))
-  :init (consult-preview-at-point-mode))
+         ("C-c r" . consult-ripgrep)))
 
-;; Orderless - deferido
+;; Orderless - mínimo
 (use-package orderless
   :ensure t
-  :defer 1
-  :custom (completion-styles '(orderless)))
+  :defer 2
+  :custom (completion-styles '(orderless basic)))  ; basic como fallback
 
-;; Marginalia - carregar após vertico
+;; Marginalia - MUITO tardio
 (use-package marginalia
   :ensure t
   :after vertico
-  :defer 1
+  :defer 5  ; 5 segundos!
   :init (marginalia-mode))
 
-;; Tema - carregar por último
-(use-package gruber-darker-theme
-  :ensure t
-  :defer 2  ; Carregar após 2 segundos
-  :config
-  (load-theme 'gruber-darker t))
+;; Tema - usar tema EMBUTIDO (remove gruber-darker)
+;; REMOVER completamente: (use-package gruber-darker-theme ...)
 
-;;; === MODOS DE LINGUAGEM (Carregamento por extensão) ===
+;;; === MODOS DE LINGUAGEM (Sob demanda REAL) ===
 
-;; TypeScript - só quando necessário
+;; TypeScript - apenas quando ABRIR arquivo
 (use-package typescript-mode
   :ensure t
   :defer t
-  :mode ("\\.ts\\'" . typescript-mode))
+  :mode ("\\.tsx?\\'" . typescript-mode)
+  :init (setq typescript-indent-level 2))
 
-;; Go - com tree-sitter se disponível
+;; Go - apenas quando ABRIR arquivo  
 (use-package go-ts-mode
   :ensure t
   :defer t
   :mode ("\\.go\\'" . go-ts-mode))
 
-;; Elixir - modo leve
+;; Elixir - apenas quando ABRIR arquivo
 (use-package elixir-mode
   :ensure t
   :defer t
-  :hook (elixir-mode . (lambda ()
-                        (subword-mode 1)
-                        (eldoc-mode 1)))
+  :hook (elixir-mode . (lambda () (subword-mode 1)))
   :config (setq elixir-basic-offset 2))
 
-;;; === CONFIGURAÇÕES DE APARÊNCIA (AtrasadAS) ===
+;;; === CONFIGURAÇÕES DE APARÊNCIA (ADIADAS) ===
 
-;; Fontes - configurar após o tema
-(run-with-idle-timer 1 nil
+;; Fontes - ADIAR significativamente
+(run-with-idle-timer 3 nil
   (lambda ()
-    (defun rc/get-default-font ()
-      (cond
-       ((eq system-type 'gnu/linux) "Iosevka-20")))
-    (add-to-list 'default-frame-alist `(font . ,(rc/get-default-font)))))
+    (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))  ; Tamanho menor = mais rápido
 
-;; Line numbers - apenas quando necessário
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-;; Remova ou comente esta linha: (global-display-line-numbers-mode 1)
+;; Line numbers - APENAS quando necessário
+(run-with-idle-timer 2 nil
+  (lambda ()
+    (add-hook 'prog-mode-hook 'display-line-numbers-mode)))
 
-;; Maximizar após startup
-(add-hook 'emacs-startup-hook #'toggle-frame-maximized)
+;; Maximizar - ADIAR
+(run-with-idle-timer 1 nil 'toggle-frame-maximized)
 
-;; Tema
+;; Tema EMBUTIDO - carregar rápido
 (load-theme 'tango-dark t)
 
-;;; === CONFIGURAÇÕES DE PERFORMANCE AVANÇADAS ===
+;;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
 
-;; GC inteligente para minibuffer
+;; GC inteligente AGGRESSIVO
 (defun my-minibuffer-setup-hook ()
-  (setq gc-cons-threshold most-positive-fixnum))
+  (setq gc-cons-threshold 400000000))  ; 400MB durante minibuffer!
 
 (defun my-minibuffer-exit-hook ()
-  (setq gc-cons-threshold 800000))  ; 800KB padrão
+  (setq gc-cons-threshold 200000000))  ; 200MB após minibuffer
 
 (add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
 (add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
 
-;; Otimizações de rendering
-(setq redisplay-skip-fontification-on-input t)
-(setq auto-window-vscroll nil)
-(setq fast-but-imprecise-scrolling t)
-(setq jit-lock-stealth-time 3)
-(setq jit-lock-defer-time 0)
-
-;; Sistema de arquivos
-(setq auto-save-default t)
+;; Sistema de arquivos ULTRA rápido
+(setq auto-save-default nil)  ; 🚨 DESATIVAR auto-save durante startup
 (setq create-lockfiles nil)
 (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
+(setq auto-save-list-file-prefix nil)  ; Não criar auto-save-list
 
-;; Busca
+;; Busca rápida
 (setq case-fold-search t)
 (setq search-upper-case 'not-symbols)
 
-;;; === CONFIGURAÇÕES ADICIONAIS (Deferidas) ===
+;;; === CONFIGURAÇÕES ADICIONAIS (ADIADAS RADICALMENTE) ===
 
-;; Midnight - limpeza automática
-(use-package midnight
-  :defer 10  ; Carregar após 10 segundos
-  :config
-  (midnight-mode 1))
+;; Midnight - ADIAR muito
+(run-with-idle-timer 15 nil 
+  (lambda ()
+    (require 'midnight)
+    (midnight-mode 1)))
 
-;; Tree-sitter - se disponível
-(when (fboundp 'treesit-available-p)
-  (use-package treesit
-    :defer t
-    :config
-    (setq treesit-font-lock-level 2)))  ; Nível menor = mais rápido
+;; Tree-sitter - apenas se necessário
+(run-with-idle-timer 10 nil
+  (lambda ()
+    (when (fboundp 'treesit-available-p)
+      (setq treesit-font-lock-level 1))))  ; Nível MÍNIMO
 
-;; Eglot - apenas quando invocado
+;; Eglot - CARREGAMENTO POR DEMANDA REAL
 (use-package eglot
   :ensure t
   :defer t
-  :commands eglot
-  :config
-  (setq eglot-events-buffer-size 0)
-  (setq eglot-sync-connect 1)
-  (setq eglot-connect-timeout 10))
+  :commands (eglot eglot-ensure)
+  :init
+  (setq eglot-events-buffer-size 0
+        eglot-sync-connect 0
+        eglot-connect-timeout 30))
 
-;;; === CONFIGURAÇÕES DE MODOS ESPECÍFICOS ===
+;;; === CONFIGURAÇÕES DE MODOS (MÍNIMAS) ===
 
 ;; Electric pair - leve
 (electric-pair-mode 1)
 
-;; C mode
-(setq-default c-basic-offset 4
-              c-default-style '((java-mode . "java")
-                                (go-ts-mode . "go")
-                                (awk-mode . "awk")
-                                (other . "bsd")))
+;; C mode - configuração mínima
+(setq-default c-basic-offset 4)
+(add-hook 'c-mode-hook (lambda () (c-toggle-comment-style -1)))
 
-(add-hook 'c-mode-hook
-          (lambda ()
-            (c-toggle-comment-style -1)))
-
-;; Emacs Lisp
+;; Emacs Lisp - apenas o essencial
 (add-hook 'emacs-lisp-mode-hook
           (lambda ()
             (local-set-key (kbd "C-c C-j") 'eval-print-last-sexp)))
 
-;; Word wrap para markdown
-(defun rc/enable-word-wrap ()
-  (toggle-word-wrap 1))
-(add-hook 'markdown-mode-hook 'rc/enable-word-wrap)
+;; Word wrap - apenas quando necessário
+(add-hook 'markdown-mode-hook (lambda () (toggle-word-wrap 1)))
 
-;; Modos de arquivo
-(add-to-list 'auto-mode-alist '("Cask" . emacs-lisp-mode))
-(add-to-list 'auto-mode-alist '("\\.html\\'" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.xsd\\'" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.ant\\'" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.ebi\\'" . lisp-mode))
+;; Modos de arquivo - direto
+(dolist (pair '(("Cask" . emacs-lisp-mode)
+                ("\\.html\\'" . nxml-mode)
+                ("\\.xsd\\'" . nxml-mode)
+                ("\\.ant\\'" . nxml-mode)
+                ("\\.ebi\\'" . lisp-mode)))
+  (add-to-list 'auto-mode-alist pair))
 
 ;;; === CONFIRMAÇÕES AUTOMÁTICAS ===
-;; Desativar confirmações para operações de arquivo
 (setq confirm-nonexistent-file-or-buffer nil)
 (setq confirm-kill-processes nil)
+(setq confirm-kill-emacs nil)
 
-;; Para renomear arquivos (dired)
-(eval-after-load 'dired
-  '(progn
-     (defun dired-rename-file-yes () 
-       "Renomear arquivo sem confirmação"
-       (interactive)
-       (let ((file (dired-get-filename)))
-         (dired-rename-file file (read-string "Novo nome: ") nil)))
-     
-     (define-key dired-mode-map (kbd "R") 'dired-rename-file-yes)))
-
-;; Para apagar arquivos (dired)
-(eval-after-load 'dired
-  '(progn
-     (defun dired-delete-file-yes ()
-       "Apagar arquivo sem confirmação"
-       (interactive)
-       (let ((file (dired-get-filename)))
-         (delete-file file)
-         (revert-buffer)))
-     
-     (define-key dired-mode-map (kbd "D") 'dired-delete-file-yes)))
-
-;; Configuração global para confirmações
-(setq confirm-kill-emacs nil)  ; Sair sem confirmar
-
-;; TRAMP
+;; TRAMP config mínima
 (setq tramp-auto-save-directory "/tmp")
 
 ;;; === CONFIGURAÇÕES FINAIS DE PERFORMANCE ===
 
-;; Reset final do GC após tudo carregado
+;; Reset FINAL do GC
 (add-hook 'emacs-startup-hook
   (lambda ()
-    (setq gc-cons-threshold 800000)  ; Voltar ao padrão
-    (message "Emacs carregado em %.2f segundos (Otimizado!)" 
+    (setq gc-cons-threshold 800000)  ; Voltar ao normal
+    ;; Re-ativar auto-save APÓS startup
+    (setq auto-save-default t)
+    (message "Emacs TURBO carregado em %.2f segundos!" 
              (float-time (time-subtract after-init-time before-init-time)))))
 
-;; Arquivo custom
-(setq custom-file "~/.emacs.custom.el")
-(load custom-file 'noerror)
+;;; === CONFIGURAÇÃO DO ARQUIVO CUSTOM ===
+;; TUDO que for configurado via customize vai para este arquivo
+(setq custom-file "~/.emacs.d/custom.el")
 
-;; Load path local
-(add-to-list 'load-path "~/.emacs.local/")
+;; Carregar o arquivo custom se existir
+(when (file-exists-p custom-file)
+  (load custom-file))
 
-(message "✅ Configuração otimizada carregada!")
+;; Função para garantir que customizações sejam salvas no lugar certo
+(defun my-save-custom-file ()
+  "Salvar customizações no arquivo correto."
+  (unless (file-exists-p custom-file)
+    (write-region "" nil custom-file))
+  (custom-save-all))
+
+;; Salvar automaticamente quando usar customize
+(setq custom-save-dir "~/.emacs.d/")
+(add-hook 'after-init-hook 'my-save-custom-file)
+
+;; Mensagem final MINIMAL
+(message "Iniciando...")
