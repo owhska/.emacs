@@ -55,7 +55,7 @@
 (setq-default indent-tabs-mode nil)
 
 ;; Transparência
-(add-to-list 'default-frame-alist '(alpha . (92 . 87)))
+;;(add-to-list 'default-frame-alist '(alpha . (92 . 87)))
 
 ;;; === PACOTES COM CARREGAMENTO ULTRA TARDIO ===
 
@@ -155,7 +155,12 @@
 (run-with-idle-timer 1 nil 'toggle-frame-maximized)
 
 ;; Tema EMBUTIDO - carregar rápido
-(load-theme 'tango-dark t)
+;;(load-theme 'tango-dark t)
+(load-theme 'wombat t)
+;;(load-theme 'manoj-dark t)
+;;(load-theme 'wheatgrass t)
+(set-face-background 'default "#181818")
+(set-face-foreground 'default "#e4e4e4")
 
 ;;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
 
