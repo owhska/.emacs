@@ -230,7 +230,7 @@
     (setq gc-cons-threshold 800000)  ; Voltar ao normal
     ;; Re-ativar auto-save APÓS startup
     (setq auto-save-default t)
-    (message "Emacs TURBO carregado em %.2f segundos!" 
+    (message "Emacs carregado em %.2f segundos!" 
              (float-time (time-subtract after-init-time before-init-time)))))
 
 ;;; === CONFIGURAÇÃO DO ARQUIVO CUSTOM ===
