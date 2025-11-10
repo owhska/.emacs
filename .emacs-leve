@@ -146,6 +146,11 @@
 (add-hook 'help-mode-hook (lambda () (display-line-numbers-mode -1)))
 (add-hook 'info-mode-hook (lambda () (display-line-numbers-mode -1)))
 
+;; Versão NUCLEAR - Desativar TODAS as confirmações do sistema
+(defun my-always-yes (&rest args) t)
+(advice-add 'yes-or-no-p :override 'my-always-yes)
+(advice-add 'y-or-n-p :override 'my-always-yes)
+
 ;; Maximizar - ADIAR
 (run-with-idle-timer 1 nil 'toggle-frame-maximized)
 
