@@ -1,0 +1,393 @@
+;;; === CONFIGURAÇÕES CRÍTICAS DE PERFORMANCE ===
+;; Otimizações RADICAIS que devem vir ANTES de tudo
+(setq gc-cons-threshold 200000000)  ; 200MB durante carregamento
+(setq read-process-output-max (* 8 1024 1024))  ; 8MB para I/O
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-message t)
+(setq inhibit-startup-echo-area-message t)
+(setq initial-major-mode 'fundamental-mode)
+(setq initial-scratch-message nil)
+(setq message-log-max 1000)  ; Limitar logs
+
+;; Performance de UI radical
+(setq idle-update-delay 1.0)
+(setq redisplay-skip-fontification-on-input t)
+(setq auto-window-vscroll nil)
+(setq fast-but-imprecise-scrolling t)
+(setq jit-lock-stealth-time 5)
+(setq jit-lock-defer-time 0.5)
+
+;; Interface mínima ULTRA radical
+(tool-bar-mode -1)
+(menu-bar-mode -1) 
+(scroll-bar-mode -1)
+(setq visible-bell nil)
+(setq ring-bell-function 'ignore)
+(setq use-dialog-box nil)
+(setq use-file-dialog nil)
+
+;;; === SISTEMA DE PACOTES (Turbo) ===
+(require 'package)
+(let ((timeout 10))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+  (package-initialize)
+
+  ;; Bootstrap use-package ULTRA rápido
+  (unless (package-installed-p 'use-package)
+    (with-timeout (timeout (message "Timeout package refresh"))
+      (package-refresh-contents)))
+  
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package)))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+(setq use-package-expand-minimally t)  ; 👈 CRÍTICO para performance
+(setq use-package-enable-imenu-support nil)
+
+;;; === CONFIGURAÇÕES PESSOAIS (Mínimas) ===
+(defun display-warning (&rest _args) nil)
+(setq warning-minimum-level :emergency)
+(global-set-key [C-tab] 'other-window)
+
+;; Configurações de tab
+(setq tab-width 4)
+(setq-default indent-tabs-mode nil)
+
+;; Transparência
+;;(add-to-list 'default-frame-alist '(alpha . (92 . 87)))
+
+;; LSP Mode
+(use-package lsp-mode
+  :init
+  ;; Opcional: definir prefix key
+  (setq lsp-keymap-prefix "C-c l")
+  
+  :hook
+  ;; Ativar LSP automaticamente para linguagens específicas
+  ((python-mode . lsp-deferred)
+   (js-mode . lsp-deferred)
+   (js-jsx-mode . lsp-deferred)
+   (typescript-mode . lsp-deferred)
+   (elixir-mode . lsp-deferred)
+   (web-mode . lsp-deferred)
+   (c-mode . lsp-deferred)
+   (c++-mode . lsp-deferred)
+   (java-mode . lsp-deferred)
+   (go-mode . lsp-deferred)
+   (rust-mode . lsp-deferred))
+  
+  :commands (lsp lsp-deferred)
+  
+  :config
+  ;; Configurações importantes
+  (setq lsp-restart 'auto-restart)
+  (setq lsp-enable-symbol-highlighting nil)
+  (setq lsp-enable-on-type-formatting nil)
+  (setq lsp-auto-guess-root t)
+  (setq lsp-signature-auto-activate nil)
+  (setq lsp-signature-render-documentation nil)
+  (setq lsp-ui-sideline-show-code-actions nil
+        lsp-signature-auto-activate nil
+        lsp-signature-render-documentation nil)
+  (setq lsp-diagnostics-provider :none)
+  (setq lsp-ui-doc-enable nil)
+)
+
+;; LSP UI - Interface visual melhorada
+(use-package lsp-ui
+  :after lsp-mode
+;;:hook (lsp-mode . lsp-ui-mode)
+  :config
+  ;; Desativa o doc panel que aparece em baixo
+  (setq lsp-ui-doc-enable nil)
+  (setq lsp-ui-sideline-enable nil)
+  (setq lsp-ui-sideline-enable nil) 
+  (setq lsp-ui-peek-enable nil) 
+  (setq lsp-ui-sideline-show-code-actions nil)
+)
+
+;; Company Mode - Autocompletion
+(use-package company
+  :ensure t
+  :hook (after-init . global-company-mode)
+  :config
+  (setq company-idle-delay 0.1
+        company-minimum-prefix-length 1
+        company-selection-wrap-around t
+        company-show-numbers t
+        company-tooltip-limit 5
+        company-tooltip-align-annotations nil
+        company-tooltip-flip-when-above t
+        company-tooltip-annotation nil
+        company-format-margin-function nil)
+)
+
+;; Desativa Elementos
+(setq eldoc-mode nil)
+(global-eldoc-mode -1)
+(tab-bar-mode -1)
+(setq lsp-headerline-breadcrumb-enable nil)
+(setq lsp-auto-execute-action nil)
+(setq lsp-enable-code-action nil)
+(setq lsp-code-action-enable nil)
+(setq company-frontends '(company-pseudo-tooltip-frontend))
+(remove-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+(remove-hook 'lsp-mode-hook 'eldoc-mode)
+(setq lsp-ui-sideline-show-code-actions nil)
+(setq eldoc-mode-line-string nil) 
+(setq company-mode-line-string nil)
+
+
+(setq mode-line-misc-info nil)
+
+(setq-default mode-line-format
+  '("%e"  ; erro se o arquivo não terminar com nova linha
+  
+    ;; 1. Buffer coding
+    (:eval (let ((coding (coding-system-plist buffer-file-coding-system)))
+             (when (plist-get coding :name)
+               (propertize (format " %s " (upcase (plist-get coding :name)))
+                         'face 'font-lock-comment-face))))
+    
+    " " ; separador
+    
+    ;; 2. Buffer name
+    mode-line-buffer-identification
+    
+    " " ; separador
+    
+    ;; 3. Git version control system
+    (:eval (when (and vc-mode (not (string= vc-mode "")))
+             (propertize (format " %s " vc-mode)
+                         'face 'font-lock-type-face)))
+    
+    " " ; separador
+    
+    ;; 4. Major mode - só a linguagem
+    (:eval (propertize (format " %s " (capitalize (symbol-name major-mode)))
+                       'face 'font-lock-keyword-face))
+    
+    ;; Espaço final para alinhamento
+    " "))
+
+(force-mode-line-update t)
+
+;;; === PACOTES COM CARREGAMENTO ULTRA TARDIO ===
+
+;; Evil mode - apenas o essencial
+(use-package evil
+  :ensure t
+  :demand t
+  :config
+  (evil-mode 1)
+  ;; MÍNIMO de configurações
+  (setq evil-want-fine-undo t)
+  (setq evil-search-module 'evil-search))
+
+;; Vertico - config mínimo
+(use-package vertico
+  :ensure t
+  :init (vertico-mode)
+  :config
+  (setq vertico-cycle t)
+  (setq vertico-count 8))  ; Ainda menos resultados
+
+;; Consult - carregamento MUITO tardio
+(use-package consult
+  :ensure t
+  :defer 3  ; 3 segundos após inatividade
+  :bind (("C-s" . consult-line)
+         ("C-c h" . consult-history)
+         ("C-x 8" . consult-imenu)
+         ("C-c f" . consult-find)
+         ("C-c r" . consult-ripgrep)))
+
+;; Orderless - mínimo
+(use-package orderless
+  :ensure t
+  :defer 2
+  :custom (completion-styles '(orderless basic)))  ; basic como fallback
+
+;; Marginalia - MUITO tardio
+(use-package marginalia
+  :ensure t
+  :after vertico
+  :defer 5  ; 5 segundos!
+  :init (marginalia-mode))
+
+;; Tema - usar tema EMBUTIDO (remove gruber-darker)
+;; REMOVER completamente: (use-package gruber-darker-theme ...)
+(use-package gruber-darker-theme)
+(load-theme 'gruber-darker t)
+
+;;; === MODOS DE LINGUAGEM (Sob demanda REAL) ===
+
+;; TypeScript - apenas quando ABRIR arquivo
+(use-package typescript-mode
+  :ensure t
+  :defer t
+  :mode ("\\.tsx?\\'" . typescript-mode)
+  :init (setq typescript-indent-level 2))
+
+;; Go - apenas quando ABRIR arquivo  
+(use-package go-ts-mode
+  :ensure t
+  :defer t
+  :mode ("\\.go\\'" . go-ts-mode))
+
+;; Elixir - apenas quando ABRIR arquivo
+(use-package elixir-mode
+  :ensure t
+  :defer t
+  :hook (elixir-mode . (lambda () (subword-mode 1)))
+  :config (setq elixir-basic-offset 2))
+
+;;; === CONFIGURAÇÕES DE APARÊNCIA (ADIADAS) ===
+
+;; Fontes - ADIAR significativamente
+(run-with-idle-timer 3 nil
+  (lambda ()
+    (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))  ; Tamanho menor = mais rápido
+
+;;; === NUMERAÇÃO DE LINHAS INTELIGENTE ===
+;; Ativar apenas em modos de programação e texto
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'text-mode-hook 'display-line-numbers-mode)
+
+;; Desativar em modos onde não é útil
+(add-hook 'dired-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'vterm-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'shell-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'eshell-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'compilation-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'help-mode-hook (lambda () (display-line-numbers-mode -1)))
+(add-hook 'info-mode-hook (lambda () (display-line-numbers-mode -1)))
+
+;; Versão NUCLEAR - Desativar TODAS as confirmações do sistema
+(defun my-always-yes (&rest args) t)
+(advice-add 'yes-or-no-p :override 'my-always-yes)
+(advice-add 'y-or-n-p :override 'my-always-yes)
+
+;; Maximizar - ADIAR
+(run-with-idle-timer 1 nil 'toggle-frame-maximized)
+
+;; Tema EMBUTIDO - carregar rápido
+;;(load-theme 'tango-dark t)
+;;(load-theme 'wombat t)
+;;(load-theme 'manoj-dark t)
+;;(load-theme 'wheatgrass t)
+(set-face-background 'default "#181818")
+(set-face-foreground 'default "#e4e4e4")
+
+;;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
+
+;; GC inteligente AGGRESSIVO
+(defun my-minibuffer-setup-hook ()
+  (setq gc-cons-threshold 400000000))  ; 400MB durante minibuffer!
+
+(defun my-minibuffer-exit-hook ()
+  (setq gc-cons-threshold 200000000))  ; 200MB após minibuffer
+
+(add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
+(add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
+
+;; Sistema de arquivos ULTRA rápido
+(setq auto-save-default nil)  ; 🚨 DESATIVAR auto-save durante startup
+(setq create-lockfiles nil)
+(setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
+(setq auto-save-list-file-prefix nil)  ; Não criar auto-save-list
+
+;; Busca rápida
+(setq case-fold-search t)
+(setq search-upper-case 'not-symbols)
+
+;;; === CONFIGURAÇÕES ADICIONAIS (ADIADAS RADICALMENTE) ===
+
+;; Midnight - ADIAR muito
+(run-with-idle-timer 15 nil 
+  (lambda ()
+    (require 'midnight)
+    (midnight-mode 1)))
+
+;; Tree-sitter - apenas se necessário
+(run-with-idle-timer 10 nil
+  (lambda ()
+    (when (fboundp 'treesit-available-p)
+      (setq treesit-font-lock-level 1))))  ; Nível MÍNIMO
+
+;; Eglot - CARREGAMENTO POR DEMANDA REAL
+(use-package eglot
+  :ensure t
+  :defer t
+  :commands (eglot eglot-ensure)
+  :init
+  (setq eglot-events-buffer-size 0
+        eglot-sync-connect 0
+        eglot-connect-timeout 30))
+
+;;; === CONFIGURAÇÕES DE MODOS (MÍNIMAS) ===
+
+;; Electric pair - leve
+(electric-pair-mode 1)
+
+;; C mode - configuração mínima
+(setq-default c-basic-offset 4)
+(add-hook 'c-mode-hook (lambda () (c-toggle-comment-style -1)))
+
+;; Emacs Lisp - apenas o essencial
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-c C-j") 'eval-print-last-sexp)))
+
+;; Word wrap - apenas quando necessário
+(add-hook 'markdown-mode-hook (lambda () (toggle-word-wrap 1)))
+
+;; Modos de arquivo - direto
+(dolist (pair '(("Cask" . emacs-lisp-mode)
+                ("\\.html\\'" . nxml-mode)
+                ("\\.xsd\\'" . nxml-mode)
+                ("\\.ant\\'" . nxml-mode)
+                ("\\.ebi\\'" . lisp-mode)))
+  (add-to-list 'auto-mode-alist pair))
+
+;;; === CONFIRMAÇÕES AUTOMÁTICAS ===
+(setq confirm-nonexistent-file-or-buffer nil)
+(setq confirm-kill-processes nil)
+(setq confirm-kill-emacs nil)
+
+;; TRAMP config mínima
+(setq tramp-auto-save-directory "/tmp")
+
+;;; === CONFIGURAÇÕES FINAIS DE PERFORMANCE ===
+
+;; Reset FINAL do GC
+(add-hook 'emacs-startup-hook
+  (lambda ()
+    (setq gc-cons-threshold 100000000) 
+    ;; Re-ativar auto-save APÓS startup
+    (setq auto-save-default t)
+    (message "Loaded in %.2f s!" 
+             (float-time (time-subtract after-init-time before-init-time)))))
+
+;;; === CONFIGURAÇÃO DO ARQUIVO CUSTOM ===
+;; TUDO que for configurado via customize vai para este arquivo
+(setq custom-file "~/.emacs.d/custom.el")
+
+;; Carregar o arquivo custom se existir
+(when (file-exists-p custom-file)
+  (load custom-file))
+
+;; Função para garantir que customizações sejam salvas no lugar certo
+(defun my-save-custom-file ()
+  "Salvar customizações no arquivo correto."
+  (unless (file-exists-p custom-file)
+    (write-region "" nil custom-file))
+  (custom-save-all))
+
+;; Salvar automaticamente quando usar customize
+(setq custom-save-dir "~/.emacs.d/")
+(add-hook 'after-init-hook 'my-save-custom-file)
+
+;; Mensagem final MINIMAL
+(message "Iniciando...")
