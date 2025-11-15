@@ -250,26 +250,102 @@
 (add-to-list 'auto-mode-alist '("\\.exs?\\'" . prog-mode))
 
 ;;; === APPEARANCE CONFIGURATIONS ===
-(load-theme 'wombat t)
+;;(load-theme 'wombat t)
+;;(load-theme 'misterioso t) ;; bom tema
+;;(load-theme 'leuven-dark t)
+;;(load-theme 'tsdh-dark t)
+;;(load-theme 'tango-dark t)
+
+(custom-set-faces
+ ;; Base
+ '(default ((t (:background "#181818" :foreground "#e4e4ef"))))
+ '(cursor ((t (:background "#e4e4ef"))))
+ 
+ ;; Sintaxe
+ '(font-lock-comment-face ((t (:foreground "#8a8a8a" :italic t))))
+ '(font-lock-comment-delimiter-face ((t (:foreground "#6a6a6a" :italic t))))
+ '(font-lock-string-face ((t (:foreground "#5fe7b7"))))
+ '(font-lock-doc-face ((t (:foreground "#7fcf9f" :italic t))))
+ '(font-lock-number-face ((t (:foreground "#ffc800"))))
+ '(font-lock-keyword-face ((t (:foreground "#ff5f5f" :bold t))))
+ '(font-lock-function-name-face ((t (:foreground "#ff5f5f"))))
+ '(font-lock-type-face ((t (:foreground "#5fafd7"))))
+ '(font-lock-constant-face ((t (:foreground "#af87ff"))))
+ '(font-lock-builtin-face ((t (:foreground "#ff875f"))))
+ '(font-lock-variable-name-face ((t (:foreground "#e4e4ef"))))
+ '(font-lock-preprocessor-face ((t (:foreground "#af87ff" :bold t))))
+ '(font-lock-warning-face ((t (:foreground "#ff5f5f" :background "#2a1a1a" :bold t))))
+ 
+ ;; UI
+ '(hl-line ((t (:background "#1a1a1a"))))
+ '(region ((t (:background "#404040"))))
+ '(highlight ((t (:background "#2a2a2a"))))
+ '(fringe ((t (:background "#181818" :foreground "#585858"))))
+ '(vertical-border ((t (:foreground "#2a2a2a"))))
+ 
+ ;; Mode line
+ '(mode-line ((t (:background "#2a2a2a" :foreground "#e4e4ef" :box (:line-width 1 :color "#404040")))))
+ '(mode-line-inactive ((t (:background "#1f1f1f" :foreground "#8a8a8a" :box (:line-width 1 :color "#2a2a2a")))))
+ '(mode-line-highlight ((t (:background "#404040" :foreground "#e4e4ef"))))
+ '(mode-line-emphasis ((t (:bold t :foreground "#ff5f5f"))))
+ 
+ ;; Busca
+ '(isearch ((t (:background "#ffc800" :foreground "#181818" :bold t))))
+ '(lazy-highlight ((t (:background "#5fafd7" :foreground "#181818"))))
+ '(match ((t (:background "#af87ff" :foreground "#181818" :bold t))))
+ 
+ ;; Minibuffer
+ '(minibuffer-prompt ((t (:foreground "#5fafd7" :bold t))))
+ '(completions-common-part ((t (:foreground "#5fe7b7"))))
+ '(completions-first-difference ((t (:foreground "#ff5f5f"))))
+ 
+ ;; Diffs
+ '(diff-added ((t (:background "#1a2a1a" :foreground "#5fe7b7"))))
+ '(diff-removed ((t (:background "#2a1a1a" :foreground "#ff5f5f"))))
+ '(diff-changed ((t (:background "#1a1a2a" :foreground "#5fafd7"))))
+ 
+ ;; Org
+ '(org-level-1 ((t (:foreground "#ff5f5f" :bold t :height 1.2))))
+ '(org-level-2 ((t (:foreground "#5fafd7" :bold t))))
+ '(org-level-3 ((t (:foreground "#5fe7b7" :bold t))))
+ '(org-code ((t (:foreground "#af87ff" :background "#1a1a1a"))))
+ '(org-link ((t (:foreground "#5fafd7" :underline t))))
+ '(org-todo ((t (:foreground "#ff5f5f" :bold t))))
+ '(org-done ((t (:foreground "#5fe7b7" :bold t))))
+ 
+ ;; Números de linha
+ '(line-number ((t (:inherit default :foreground "#585858" :background "#181818"))))
+ '(line-number-current-line ((t (:inherit default :foreground "#8a8a8a" :background "#1a1a1a" :bold t))))
+ 
+ ;; Parentheses
+ '(show-paren-match ((t (:background "#5fafd7" :foreground "#181818" :bold t))))
+ '(show-paren-mismatch ((t (:background "#ff5f5f" :foreground "#181818" :bold t))))
+ 
+ ;; Widgets
+ '(widget-button ((t (:foreground "#5fafd7" :bold t :underline t))))
+ '(widget-field ((t (:background "#1a1a1a" :foreground "#e4e4ef"))))
+ 
+ ;; Status
+ '(error ((t (:foreground "#ff5f5f" :bold t))))
+ '(warning ((t (:foreground "#ffc800" :bold t))))
+ '(success ((t (:foreground "#5fe7b7" :bold t)))))
 
 ;; Fonts - DEFER
 (run-with-idle-timer 5 nil
   (lambda ()
     (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))
 
-;; Minimalist mode-line
-(set-face-attribute 'mode-line nil
-                    :background "#f0f0f0"
-                    :foreground "#333333"
-                    :box '(:line-width 1 :color "#cccccc")
-                    :overline nil
-                    :underline nil)
+;;; === NÚMEROS DE LINHA ESCALÁVEIS ===
+(setq display-line-numbers-width 4)
+(setq display-line-numbers-grow-only t)
 
-(set-face-attribute 'mode-line-inactive nil
-                    :background "#f8f8f8"
-                    :foreground "#888888"
-                    :box '(:line-width 1 :color "#dddddd"))
+(defun my-fix-line-numbers-scale ()
+  (when display-line-numbers-mode
+    (display-line-numbers-mode -1)
+    (display-line-numbers-mode 1)))
 
+(add-hook 'text-scale-mode-hook 'my-fix-line-numbers-scale)
+                    
 ;;; === INTELLIGENT LINE NUMBERING ===
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'text-mode-hook 'display-line-numbers-mode)
