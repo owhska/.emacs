@@ -146,27 +146,21 @@
 (setq-default mode-line-format
   '("%e"
 
-    ;; 1. Codificação do buffer
-    (:eval (let ((coding (coding-system-plist buffer-file-coding-system)))
-             (when (plist-get coding :name)
-               (propertize (format " %s " (upcase (symbol-name (plist-get coding :name))))
-                           'face '(:foreground "#d73a49" :weight bold)))))
-
     " "
 
-    ;; 2. Nome do buffer - CORREÇÃO AQUI
+    ;; 1. Nome do buffer - CORREÇÃO AQUI
     mode-line-buffer-identification
 
     " "
 
-    ;; 3. Controle de versão (Git)
+    ;; 2. Controle de versão (Git)
     (:eval (when (and vc-mode (not (string= vc-mode "")))
              (propertize (format " %s " vc-mode)
                          'face '(:foreground "#986801" :weight bold))))
 
     " "
 
-    ;; 4. Modo principal
+    ;; 3. Modo principal
     (:eval (propertize (format " %s " (capitalize (symbol-name major-mode)))
                        'face '(:foreground "#4078f2" :weight bold)))
 
