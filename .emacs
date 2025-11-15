@@ -1,7 +1,7 @@
-;;; === CONFIGURAÇÕES CRÍTICAS DE PERFORMANCE ===
-;; Otimizações RADICAIS que devem vir ANTES de tudo
-(setq gc-cons-threshold 400000000)  ; 400MB durante carregamento
-(setq read-process-output-max (* 16 1024 1024))  ; 16MB para I/O
+;;; === CRITICAL PERFORMANCE CONFIGURATIONS ===
+;; RADICAL optimizations that must come BEFORE everything
+(setq gc-cons-threshold 400000000)  ; 400MB during loading
+(setq read-process-output-max (* 16 1024 1024))  ; 16MB for I/O
 (setq inhibit-startup-screen t)
 (setq inhibit-startup-message t)
 (setq inhibit-startup-echo-area-message t)
@@ -11,7 +11,7 @@
 (setq auto-save-default nil)
 (setq create-lockfiles nil)
 
-;; Performance de UI radical
+;; Radical UI performance
 (setq idle-update-delay 2.0)
 (setq redisplay-skip-fontification-on-input t)
 (setq auto-window-vscroll nil)
@@ -20,7 +20,7 @@
 (setq jit-lock-defer-time 1.0)
 (setq jit-lock-stealth-verbose nil)
 
-;; Interface mínima ULTRA radical
+;; ULTRA radical minimal interface
 (tool-bar-mode -1)
 (menu-bar-mode -1) 
 (scroll-bar-mode -1)
@@ -30,14 +30,14 @@
 (setq use-file-dialog nil)
 (setq inhibit-compacting-font-caches t)
 
-;;; === INSTALAÇÃO DE PACOTES (MÍNIMA) ===
+;;; === PACKAGE INSTALLATION (MINIMAL) ===
 (require 'package)
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
                          ("gnu" . "https://elpa.gnu.org/packages/")))
 
-;;; === EVIL MODE (SEM USE-PACKAGE) ===
+;;; === EVIL MODE (WITHOUT USE-PACKAGE) ===
 
-;; Configurações de performance ANTES do carregamento
+;; Performance configurations BEFORE loading
 (setq evil-want-integration nil)
 (setq evil-want-C-u-scroll t)
 (setq evil-want-C-i-jump nil)
@@ -46,69 +46,69 @@
 (setq evil-ex-complete-emacs-commands nil)
 (setq evil-ex-interactive-search-history nil)
 
-;; Carregar evil de forma organizada
+;; Load evil mode in an organized way
 (defun my-load-evil-mode ()
-  "Carregar Evil Mode de forma correta."
-  (package-initialize)  ; Inicializar pacotes aqui
+  "Load Evil Mode correctly."
+  (package-initialize)  ; Initialize packages here
   
-  ;; Instalar Evil se necessário
+  ;; Install Evil if necessary
   (unless (package-installed-p 'evil)
     (package-refresh-contents)
     (package-install 'evil))
   
-  ;; Carregar e ativar Evil
+  ;; Load and activate Evil
   (when (require 'evil nil t)
     (evil-mode 1)
     
-    ;; Configurar keybindings
+    ;; Configure keybindings
     (define-key evil-normal-state-map (kbd "C-s") 'my-enhanced-isearch)
     (define-key evil-insert-state-map (kbd "C-s") 'my-enhanced-isearch)
     
-    ;; Adicionar hooks de GC apenas se Evil carregou
+    ;; Add GC hooks only if Evil loaded
     (add-hook 'evil-insert-state-entry-hook 'my-evil-optimize-gc)
     (add-hook 'evil-insert-state-exit-hook 'my-evil-restore-gc)
     
     ))
 
-;; Executar após 0.5 segundos
+;; Execute after 0.5 seconds
 (run-with-idle-timer 0.5 nil 'my-load-evil-mode)
 
-;;; === OTIMIZAÇÕES ESPECÍFICAS PARA EVIL ===
+;;; === EVIL MODE SPECIFIC OPTIMIZATIONS ===
 
-;; GC otimizado para operações do Evil Mode
+;; Optimized GC for Evil Mode operations
 (defun my-evil-optimize-gc ()
-  "Otimizar GC para operações do Evil Mode."
+  "Optimize GC for Evil Mode operations."
   (setq gc-cons-threshold 200000000))
 
 (defun my-evil-restore-gc ()
-  "Restaurar GC normal após operações do Evil."
+  "Restore normal GC after Evil operations."
   (setq gc-cons-threshold 80000000))
 
-;;; === SISTEMA DE BUSCA/COMPLETION NATIVO ===
+;;; === NATIVE SEARCH/COMPLETION SYSTEM ===
 
-;; Icomplete (alternativa nativa ao Vertico)
+;; Icomplete (native alternative to Vertico)
 (icomplete-mode 1)
 (setq completion-styles '(basic partial-completion emacs22))
 (setq completion-category-overrides '((file (styles basic partial-completion))))
 
-;; Busca incremental nativa
+;; Native incremental search
 (setq search-highlight t)
 (setq search-whitespace-regexp ".*?")
 (setq isearch-lazy-count t)
 (setq isearch-allow-scroll t)
 
-;;; === SISTEMA DE BUSCA RÁPIDO (CONSULT STYLE) ===
+;;; === FAST SEARCH SYSTEM (CONSULT STYLE) ===
 
-;; Busca em arquivos (similar a consult-find - C-c f)
+;; File search (similar to consult-find - C-c f)
 (defun my-find-file-recursive ()
-  "Buscar arquivo recursivamente no diretório (similar a C-c f)."
+  "Search for files recursively in directory (similar to C-c f)."
   (interactive)
-  (let ((default-directory (read-directory-name "Diretório: ")))
-    (find-file (completing-read "Buscar arquivo: " 
+  (let ((default-directory (read-directory-name "Directory: ")))
+    (find-file (completing-read "Search file: " 
                                (my-list-files-recursively default-directory)))))
 
 (defun my-list-files-recursively (directory)
-  "Lista todos os arquivos em DIRECTORY recursivamente."
+  "List all files in DIRECTORY recursively."
   (let (files)
     (dolist (file (directory-files directory t nil t))
       (unless (member (file-name-nondirectory file) '("." ".."))
@@ -117,75 +117,75 @@
           (push file files))))
     files))
 
-;; Busca com find (mais rápido para muitos arquivos)
+;; Find search (faster for many files)
 (defun my-find-file-with-find ()
-  "Buscar arquivos usando comando find (rápido)."
+  "Search files using find command (fast)."
   (interactive)
-  (let ((default-directory (read-directory-name "Diretório: "))
-        (pattern (read-string "Padrão (ex: *.el, *.js): " "*")))
-    (find-file (completing-read "Selecionar arquivo: "
+  (let ((default-directory (read-directory-name "Directory: "))
+        (pattern (read-string "Pattern (ex: *.el, *.js): " "*")))
+    (find-file (completing-read "Select file: "
                                (split-string 
                                 (shell-command-to-string 
                                  (format "find . -name \"%s\" -type f | head -100" pattern)) "\n" t)))))
 
-;; Busca de texto em arquivos (similar a consult-ripgrep - C-c r)
+;; Text search in files (similar to consult-ripgrep - C-c r)
 (defun my-grep-in-project ()
-  "Buscar texto em arquivos do projeto (similar a C-c r)."
+  "Search text in project files (similar to C-c r)."
   (interactive)
-  (let ((pattern (read-string "Texto para buscar: "))
-        (directory (read-directory-name "Diretório: " default-directory)))
+  (let ((pattern (read-string "Text to search: "))
+        (directory (read-directory-name "Directory: " default-directory)))
     (grep (format "grep -nH -r \"%s\" %s" pattern directory))))
 
 (defun my-grep-in-current-dir ()
-  "Buscar texto no diretório atual (rápido)."
+  "Search text in current directory (fast)."
   (interactive)
-  (let ((pattern (read-string "Texto para buscar: ")))
+  (let ((pattern (read-string "Text to search: ")))
     (grep (format "grep -nH -r \"%s\" ." pattern))))
 
-;; Busca incremental melhorada (similar a consult-line - C-s)
+;; Enhanced incremental search (similar to consult-line - C-s)
 (defun my-enhanced-isearch ()
-  "Busca incremental com melhorias."
+  "Enhanced incremental search."
   (interactive)
   (isearch-forward)
   (isearch-yank-string (thing-at-point 'symbol)))
 
-;; Occur melhorado (busca poderosa no buffer)
+;; Improved occur (powerful buffer search)
 (defun my-occur-symbol ()
-  "Buscar símbolo atual no buffer com occur."
+  "Search current symbol in buffer with occur."
   (interactive)
   (occur (thing-at-point 'symbol)))
 
 (defun my-occur-project ()
-  "Buscar texto em todos os buffers abertos."
+  "Search text in all open buffers."
   (interactive)
-  (let ((pattern (read-string "Buscar em todos buffers: ")))
+  (let ((pattern (read-string "Search in all buffers: ")))
     (multi-occur (buffer-list) pattern)))
 
-;;; === CONFIGURAÇÕES PESSOAIS (Mínimas) ===
+;;; === PERSONAL CONFIGURATIONS (Minimal) ===
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
 (global-set-key [C-tab] 'other-window)
 (global-set-key (kbd "C-c c") 'compile)
 
-;; CONFIGURAÇÃO DOS ATALHOS DE BUSCA
+;; SEARCH SHORTCUTS CONFIGURATION
 (defun my-find-files ()
-  "Buscar arquivos recursivamente no diretório."
+  "Search files recursively in directory."
   (interactive)
-  (let ((dir (read-directory-name "Diretório: "))
-        (pattern (read-string "Padrão do arquivo (ex: *.txt): " "*")))
+  (let ((dir (read-directory-name "Directory: "))
+        (pattern (read-string "File pattern (ex: *.txt): " "*")))
     (find-name-dired dir pattern)))
 
-(global-set-key (kbd "C-s") 'my-enhanced-isearch)        ; Busca incremental
-(global-set-key (kbd "C-c f") 'my-find-files)            ; Busca arquivos
-(global-set-key (kbd "C-c r") 'my-grep-in-current-dir)   ; Buscar texto em arquivos
+(global-set-key (kbd "C-s") 'my-enhanced-isearch)        ; Incremental search
+(global-set-key (kbd "C-c f") 'my-find-files)            ; File search
+(global-set-key (kbd "C-c r") 'my-grep-in-current-dir)   ; Text search in files
 
-;; Configurações de tab
+;; Tab settings
 (setq tab-width 4)
 (setq-default indent-tabs-mode nil)
 
-;;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
+;;; === RADICAL PERFORMANCE CONFIGURATIONS ===
 
-;; GC inteligente AGGRESSIVO
+;; AGGRESSIVE intelligent GC
 (defun my-minibuffer-setup-hook ()
   (setq gc-cons-threshold 800000000))
 
@@ -195,26 +195,26 @@
 (add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
 (add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
 
-;; Sistema de arquivos ULTRA rápido
+;; ULTRA fast file system
 (setq backup-directory-alist `(("." . "~/.emacs.d/backups")))
 (setq auto-save-list-file-prefix nil)
 
 ;;; === EDITING ESSENTIALS ===
 
-;; Electric pair - leve
+;; Electric pair - lightweight
 (electric-pair-mode 1)
 
-;; Show-paren nativo (mais leve que git-gutter para parênteses)
+;; Native show-paren (lighter than git-gutter for parentheses)
 (show-paren-mode 1)
 (setq show-paren-delay 0)
 
-;;; === GIT INTEGRATION NATIVA ===
+;;; === NATIVE GIT INTEGRATION ===
 
-;; VC (Version Control) nativo - muito mais leve
+;; Native VC (Version Control) - much lighter
 (setq vc-handled-backends '(Git))
 (setq vc-follow-symlinks t)
 
-;; Mode-line com info do Git nativo
+;; Mode-line with native Git info
 (setq mode-line-format
   '("%e"
     " "
@@ -229,28 +229,28 @@
     " "
     mode-line-misc-info))
 
-;;; === MODOS DE LINGUAGEM (Sob demanda REAL) ===
+;;; === LANGUAGE MODES (REAL on-demand) ===
 
-;; TypeScript nativo (se disponível)
+;; Native TypeScript (if available)
 (when (fboundp 'typescript-ts-mode)
   (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode)))
 
-;; Go nativo  
+;; Native Go  
 (when (fboundp 'go-ts-mode)
   (add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode)))
 
-;; Elixir - usar modo fundamental se não disponível
+;; Elixir - use fundamental mode if not available
 (add-to-list 'auto-mode-alist '("\\.exs?\\'" . prog-mode))
 
-;;; === CONFIGURAÇÕES DE APARÊNCIA ===
+;;; === APPEARANCE CONFIGURATIONS ===
 (load-theme 'wombat t)
 
-;; Fontes - ADIAR
+;; Fonts - DEFER
 (run-with-idle-timer 5 nil
   (lambda ()
     (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))
 
-;; Mode-line minimalista
+;; Minimalist mode-line
 (set-face-attribute 'mode-line nil
                     :background "#f0f0f0"
                     :foreground "#333333"
@@ -263,21 +263,21 @@
                     :foreground "#888888"
                     :box '(:line-width 1 :color "#dddddd"))
 
-;;; === NUMERAÇÃO DE LINHAS INTELIGENTE ===
+;;; === INTELLIGENT LINE NUMBERING ===
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'text-mode-hook 'display-line-numbers-mode)
 
-;; Desativar em modos desnecessários
+;; Disable in unnecessary modes
 (dolist (hook '(dired-mode-hook vterm-mode-hook shell-mode-hook 
               eshell-mode-hook compilation-mode-hook help-mode-hook 
               info-mode-hook))
   (add-hook hook (lambda () (display-line-numbers-mode -1))))
 
-;;; === MAGIT NATIVO ALTERNATIVES ===
+;;; === NATIVE MAGIT ALTERNATIVES ===
 
-;; Comandos Git básicos via comando shell
+;; Basic Git commands via shell command
 (defun my-git-status ()
-  "Git status usando comando nativo."
+  "Git status using native command."
   (interactive)
   (let ((default-directory (locate-dominating-file default-directory ".git")))
     (if default-directory
@@ -285,7 +285,7 @@
       (message "Not a git repository"))))
 
 (defun my-git-log ()
-  "Git log usando comando nativo."
+  "Git log using native command."
   (interactive)
   (let ((default-directory (locate-dominating-file default-directory ".git")))
     (if default-directory
@@ -295,7 +295,7 @@
 (global-set-key (kbd "C-x g") 'my-git-status)
 (global-set-key (kbd "C-x l") 'my-git-log)
 
-;;; === CONFIGURAÇÕES ADICIONAIS (ADIADAS) ===
+;;; === ADDITIONAL CONFIGURATIONS (DEFERRED) ===
 
 ;; C mode
 (setq-default c-basic-offset 4)
@@ -309,7 +309,7 @@
 ;; Word wrap
 (add-hook 'markdown-mode-hook (lambda () (toggle-word-wrap 1)))
 
-;; Modos de arquivo
+;; File modes
 (dolist (pair '(("Cask" . emacs-lisp-mode)
                 ("\\.html\\'" . nxml-mode)
                 ("\\.xsd\\'" . nxml-mode)
@@ -317,9 +317,9 @@
                 ("\\.ebi\\'" . lisp-mode)))
   (add-to-list 'auto-mode-alist pair))
 
-;;; === CONFIGURAÇÕES FINAIS ===
+;;; === FINAL CONFIGURATIONS ===
 
-;; Confirmações automáticas
+;; Automatic confirmations
 (defun my-always-yes (&rest args) t)
 (advice-add 'yes-or-no-p :override 'my-always-yes)
 (advice-add 'y-or-n-p :override 'my-always-yes)
@@ -328,30 +328,30 @@
 (setq confirm-kill-processes nil)
 (setq confirm-kill-emacs nil)
 
-;; Maximizar - ADIAR
+;; Maximize - DEFER
 (run-with-idle-timer 3 nil 'toggle-frame-maximized)
 
-;; Reset FINAL do GC e re-ativar auto-save
+;; FINAL GC reset and re-enable auto-save
 (add-hook 'emacs-startup-hook
   (lambda ()
-    (setq gc-cons-threshold 80000000)  ; 80MB após startup
-    (setq auto-save-default t)  ; Re-ativar auto-save
-    (message "Emacs carregado em %.2f segundos" 
+    (setq gc-cons-threshold 80000000)  ; 80MB after startup
+    (setq auto-save-default t)  ; Re-enable auto-save
+    (message "Emacs loaded in %.2f seconds" 
              (float-time (time-subtract after-init-time before-init-time)))))
 
-;;; === CONFIGURAÇÃO DO ARQUIVO CUSTOM ===
+;;; === CUSTOM FILE CONFIGURATION ===
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
 (when (file-exists-p custom-file)
   (load custom-file))
 
 (defun my-save-custom-file ()
-  "Salvar customizações no arquivo correto."
+  "Save customizations to correct file."
   (unless (file-exists-p custom-file)
     (write-region "" nil custom-file))
   (custom-save-all))
 
 (add-hook 'after-init-hook 'my-save-custom-file)
 
-;; Mensagem final MINIMAL
-(message "Iniciando Emacs ULTRA LEVE...")
+;; MINIMAL final message
+(message "Starting ULTRA LIGHT Emacs...")
