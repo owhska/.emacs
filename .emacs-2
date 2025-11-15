@@ -88,6 +88,7 @@
 
 ;; Icomplete (alternativa nativa ao Vertico)
 (icomplete-mode 1)
+;;(icomplete-vertical-mode 1)
 (setq completion-styles '(basic partial-completion emacs22))
 (setq completion-category-overrides '((file (styles basic partial-completion))))
 
