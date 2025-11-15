@@ -49,6 +49,7 @@
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
 (global-set-key [C-tab] 'other-window)
+(global-set-key (kbd "C-c c") 'compile)  ; Atalho personalizado
 
 ;; Configurações de tab
 (setq tab-width 4)
@@ -143,36 +144,129 @@
 (setq mode-line-misc-info nil)
 
 (setq-default mode-line-format
-  '("%e"  ; erro se o arquivo não terminar com nova linha
-  
-    ;; 1. Buffer coding
+  '("%e"
+
+    ;; 1. Codificação do buffer
     (:eval (let ((coding (coding-system-plist buffer-file-coding-system)))
              (when (plist-get coding :name)
-               (propertize (format " %s " (upcase (plist-get coding :name)))
-                         'face 'font-lock-comment-face))))
-    
-    " " ; separador
-    
-    ;; 2. Buffer name
-    mode-line-buffer-identification
-    
-    " " ; separador
-    
-    ;; 3. Git version control system
+               (propertize (format " %s " (upcase (symbol-name (plist-get coding :name))))
+                           'face '(:foreground "#d73a49" :weight bold)))))
+
+    " "
+
+    ;; 2. Nome do buffer
+    (:eval (propertize mode-line-buffer-identification
+                       'face '(:foreground "#50a14f" :weight bold)))
+
+    " "
+
+    ;; 3. Controle de versão (Git)
     (:eval (when (and vc-mode (not (string= vc-mode "")))
              (propertize (format " %s " vc-mode)
-                         'face 'font-lock-type-face)))
-    
-    " " ; separador
-    
-    ;; 4. Major mode - só a linguagem
+                         'face '(:foreground "#986801" :weight bold))))
+
+    " "
+
+    ;; 4. Modo principal
     (:eval (propertize (format " %s " (capitalize (symbol-name major-mode)))
-                       'face 'font-lock-keyword-face))
-    
-    ;; Espaço final para alinhamento
+                       'face '(:foreground "#4078f2" :weight bold)))
+
     " "))
 
+;; Atualiza a mode-line
 (force-mode-line-update t)
+
+;; Opcional: fundo sutil para a mode-line (melhora contraste)
+(set-face-attribute 'mode-line nil
+                    :background "#f0f0f0"
+                    :foreground "#333333"
+                    :box '(:line-width 1 :color "#cccccc")
+                    :overline nil
+                    :underline nil)
+
+(set-face-attribute 'mode-line-inactive nil
+                    :background "#f8f8f8"
+                    :foreground "#888888"
+                    :box '(:line-width 1 :color "#dddddd"))
+
+;;; === MAGIT CONFIGURAÇÃO (Carregamento Tardio) ===
+
+;;; === MAGIT CONFIGURAÇÃO (PERFORMANCE RADICAL) ===
+
+(use-package magit
+  :ensure t
+  :defer 10  ; Carregamento MUITO tardio - 10 segundos
+  :commands (magit-status magit-dispatch magit-file-dispatch)
+  :bind (("C-x g" . magit-status)
+         ("C-x M-g" . magit-dispatch-popup)
+         ("C-c M-g" . magit-file-dispatch))
+  :init
+  ;; Pré-configurações LEVES que não carregam o pacote
+  (setq magit-define-global-key-bindings nil)  ; CRÍTICO: não criar keybindings automaticamente
+  
+  :config
+  ;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
+  (setq magit-auto-revert-mode nil)
+  (setq magit-commit-show-diff nil)           ; Não mostrar diff no commit
+  (setq magit-diff-refine-hunk 'none)         ; Desativar refine de hunks
+  (setq magit-section-initial-visibility-alist 
+        '((stashes . hide)
+          (untracked . hide)
+          (unpushed . hide)
+          (unpulled . hide)))
+  
+  ;; Refresh e atualizações MÍNIMAS
+  (setq magit-refresh-status-buffer nil)
+  (setq magit-refresh-verbose t)
+  (setq magit-diff-highlight-trailing nil)
+  (setq magit-diff-highlight-indentation nil)
+  
+  ;; Limites AGGRESSIVOS para repositórios grandes
+  (setq magit-revision-insert-related-refs-limit 5)
+  (setq magit-log-arguments '("--graph" "--color" "--decorate" "-n64"))
+  (setq magit-diff-arguments '("--histogram" "--no-ext-diff"))
+  
+  ;; Desativar funcionalidades pesadas
+  (setq magit-slow-hunk-threshold 1000)       ; Só destacar hunks pequenos
+  (setq magit-display-buffer-function 'magit-display-buffer-traditional)
+  
+  ;; Performance de UI
+  (setq magit-diff-paint-whitespace nil)
+  (setq magit-diff-highlight-hunk-body nil)
+  
+  ;; Cache agressivo
+  (setq magit-revision-cache-limit 50)
+  (setq magit-process-popup-time 10))
+
+;;; === GIT-GUTTER ULTRA LEVE ===
+(use-package git-gutter
+  :ensure t
+  :defer 15  ; MUITO tardio - 15 segundos
+  :commands (global-git-gutter-mode git-gutter-mode)
+  :hook ((prog-mode text-mode) . git-gutter-mode)
+  :init
+  ;; Não ativar automaticamente - só por hook
+  (setq git-gutter:disabled-modes '(fundamental-mode org-mode image-mode pdf-view-mode))
+  
+  :config
+  ;; Configurações de performance RADICAIS
+  (setq git-gutter:update-interval 5)         ; Atualizar a cada 5s (era 2)
+  (setq git-gutter:update-hooks-interval 10)  ; Hook mais espaçado
+  (setq git-gutter:diff-option "-U0")         ; Diff mínimo
+  (setq git-gutter:hide-gutter t)             ; Esconder gutter quando vazio
+  (setq git-gutter:verbosity 0)               ; Sem mensagens
+  
+  ;; Símbolos mínimos
+  (setq git-gutter:modified-sign "│")
+  (setq git-gutter:added-sign "│")  
+  (setq git-gutter:deleted-sign "⤵")
+  
+  ;; Desativar funcionalidades pesadas
+  (setq git-gutter:ask-p nil)
+  (setq git-gutter:visual-line nil)
+  
+  ;; Ativar apenas modo global quando configurado
+  (global-git-gutter-mode +1))
 
 ;;; === PACOTES COM CARREGAMENTO ULTRA TARDIO ===
 
@@ -278,8 +372,8 @@
 ;;(load-theme 'wombat t)
 ;;(load-theme 'manoj-dark t)
 ;;(load-theme 'wheatgrass t)
-(set-face-background 'default "#181818")
-(set-face-foreground 'default "#e4e4e4")
+;;(set-face-background 'default "#181818")
+;;(set-face-foreground 'default "#e4e4e4")
 
 ;;; === CONFIGURAÇÕES DE PERFORMANCE RADICAIS ===
 
