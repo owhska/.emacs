@@ -30,6 +30,11 @@
 (setq use-file-dialog nil)
 (setq inhibit-compacting-font-caches t)
 
+;;; === INSTALAÇÃO DE PACOTES (MÍNIMA) ===
+(require 'package)
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("gnu" . "https://elpa.gnu.org/packages/")))
+
 ;;; === EVIL MODE (SEM USE-PACKAGE) ===
 
 ;; Configurações de performance ANTES do carregamento
@@ -41,23 +46,32 @@
 (setq evil-ex-complete-emacs-commands nil)
 (setq evil-ex-interactive-search-history nil)
 
-;; Carregar evil com timer para não bloquear startup
-(run-with-idle-timer 
- 0.1 nil
- (lambda ()
-   (require 'evil)
-   (evil-mode 1)
-   
-   ;; Otimizações pós-carregamento
-   (setq evil-move-cursor-back nil)
-   (setq evil-flash-delay 0)
-   (setq evil-lookup-func #'ignore)
-   
-   ;; Configurar keybindings
-   (define-key evil-normal-state-map (kbd "C-s") 'my-enhanced-isearch)
-   (define-key evil-insert-state-map (kbd "C-s") 'my-enhanced-isearch)
-   
-   ))
+;; Carregar evil de forma organizada
+(defun my-load-evil-mode ()
+  "Carregar Evil Mode de forma correta."
+  (package-initialize)  ; Inicializar pacotes aqui
+  
+  ;; Instalar Evil se necessário
+  (unless (package-installed-p 'evil)
+    (package-refresh-contents)
+    (package-install 'evil))
+  
+  ;; Carregar e ativar Evil
+  (when (require 'evil nil t)
+    (evil-mode 1)
+    
+    ;; Configurar keybindings
+    (define-key evil-normal-state-map (kbd "C-s") 'my-enhanced-isearch)
+    (define-key evil-insert-state-map (kbd "C-s") 'my-enhanced-isearch)
+    
+    ;; Adicionar hooks de GC apenas se Evil carregou
+    (add-hook 'evil-insert-state-entry-hook 'my-evil-optimize-gc)
+    (add-hook 'evil-insert-state-exit-hook 'my-evil-restore-gc)
+    
+    ))
+
+;; Executar após 0.5 segundos
+(run-with-idle-timer 0.5 nil 'my-load-evil-mode)
 
 ;;; === OTIMIZAÇÕES ESPECÍFICAS PARA EVIL ===
 
@@ -69,11 +83,6 @@
 (defun my-evil-restore-gc ()
   "Restaurar GC normal após operações do Evil."
   (setq gc-cons-threshold 80000000))
-
-;; Aplicar otimizações durante edição
-(add-hook 'evil-insert-state-entry-hook 'my-evil-optimize-gc)
-(add-hook 'evil-insert-state-exit-hook 'my-evil-restore-gc)
-
 
 ;;; === SISTEMA DE BUSCA/COMPLETION NATIVO ===
 
@@ -88,13 +97,77 @@
 (setq isearch-lazy-count t)
 (setq isearch-allow-scroll t)
 
+;;; === SISTEMA DE BUSCA RÁPIDO (CONSULT STYLE) ===
+
+;; Busca em arquivos (similar a consult-find - C-c f)
+(defun my-find-file-recursive ()
+  "Buscar arquivo recursivamente no diretório (similar a C-c f)."
+  (interactive)
+  (let ((default-directory (read-directory-name "Diretório: ")))
+    (find-file (completing-read "Buscar arquivo: " 
+                               (my-list-files-recursively default-directory)))))
+
+(defun my-list-files-recursively (directory)
+  "Lista todos os arquivos em DIRECTORY recursivamente."
+  (let (files)
+    (dolist (file (directory-files directory t nil t))
+      (unless (member (file-name-nondirectory file) '("." ".."))
+        (if (file-directory-p file)
+            (setq files (append files (my-list-files-recursively file)))
+          (push file files))))
+    files))
+
+;; Busca com find (mais rápido para muitos arquivos)
+(defun my-find-file-with-find ()
+  "Buscar arquivos usando comando find (rápido)."
+  (interactive)
+  (let ((default-directory (read-directory-name "Diretório: "))
+        (pattern (read-string "Padrão (ex: *.el, *.js): " "*")))
+    (find-file (completing-read "Selecionar arquivo: "
+                               (split-string 
+                                (shell-command-to-string 
+                                 (format "find . -name \"%s\" -type f | head -100" pattern)) "\n" t)))))
+
+;; Busca de texto em arquivos (similar a consult-ripgrep - C-c r)
+(defun my-grep-in-project ()
+  "Buscar texto em arquivos do projeto (similar a C-c r)."
+  (interactive)
+  (let ((pattern (read-string "Texto para buscar: "))
+        (directory (read-directory-name "Diretório: " default-directory)))
+    (grep (format "grep -nH -r \"%s\" %s" pattern directory))))
+
+(defun my-grep-in-current-dir ()
+  "Buscar texto no diretório atual (rápido)."
+  (interactive)
+  (let ((pattern (read-string "Texto para buscar: ")))
+    (grep (format "grep -nH -r \"%s\" ." pattern))))
+
+;; Busca incremental melhorada (similar a consult-line - C-s)
+(defun my-enhanced-isearch ()
+  "Busca incremental com melhorias."
+  (interactive)
+  (isearch-forward)
+  (isearch-yank-string (thing-at-point 'symbol)))
+
+;; Occur melhorado (busca poderosa no buffer)
+(defun my-occur-symbol ()
+  "Buscar símbolo atual no buffer com occur."
+  (interactive)
+  (occur (thing-at-point 'symbol)))
+
+(defun my-occur-project ()
+  "Buscar texto em todos os buffers abertos."
+  (interactive)
+  (let ((pattern (read-string "Buscar em todos buffers: ")))
+    (multi-occur (buffer-list) pattern)))
+
 ;;; === CONFIGURAÇÕES PESSOAIS (Mínimas) ===
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
 (global-set-key [C-tab] 'other-window)
 (global-set-key (kbd "C-c c") 'compile)
 
-;; CONFIGURAÇÃO DOS ATALHOS DE BUSCA (igual ao que você usava)
+;; CONFIGURAÇÃO DOS ATALHOS DE BUSCA
 (defun my-find-files ()
   "Buscar arquivos recursivamente no diretório."
   (interactive)
@@ -103,7 +176,7 @@
     (find-name-dired dir pattern)))
 
 (global-set-key (kbd "C-s") 'my-enhanced-isearch)        ; Busca incremental
-(global-set-key (kbd "C-c f") 'my-find-files) ; Busca arquivos
+(global-set-key (kbd "C-c f") 'my-find-files)            ; Busca arquivos
 (global-set-key (kbd "C-c r") 'my-grep-in-current-dir)   ; Buscar texto em arquivos
 
 ;; Configurações de tab
