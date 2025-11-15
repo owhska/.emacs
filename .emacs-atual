@@ -154,9 +154,8 @@
 
     " "
 
-    ;; 2. Nome do buffer
-    (:eval (propertize mode-line-buffer-identification
-                       'face '(:foreground "#50a14f" :weight bold)))
+    ;; 2. Nome do buffer - CORREÇÃO AQUI
+    mode-line-buffer-identification
 
     " "
 
