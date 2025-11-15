@@ -63,6 +63,7 @@
     ;; Configure keybindings
     (define-key evil-normal-state-map (kbd "C-s") 'my-enhanced-isearch)
     (define-key evil-insert-state-map (kbd "C-s") 'my-enhanced-isearch)
+    (define-key evil-visual-state-map (kbd "C-s") 'my-enhanced-isearch)
     
     ;; Add GC hooks only if Evil loaded
     (add-hook 'evil-insert-state-entry-hook 'my-evil-optimize-gc)
@@ -145,16 +146,21 @@
 
 ;; Enhanced incremental search (similar to consult-line - C-s)
 (defun my-enhanced-isearch ()
-  "Enhanced incremental search."
+  "Start isearch with symbol at point. Use C-n/C-p to navigate."
   (interactive)
-  (isearch-forward)
-  (isearch-yank-string (thing-at-point 'symbol)))
+  (let ((symbol (thing-at-point 'symbol t)))
+    (isearch-forward)
+    (when symbol
+      (isearch-yank-string symbol))))
 
 ;; Improved occur (powerful buffer search)
 (defun my-occur-symbol ()
   "Search current symbol in buffer with occur."
   (interactive)
-  (occur (thing-at-point 'symbol)))
+  (let ((symbol (thing-at-point 'symbol t)))
+    (if symbol
+        (occur symbol)
+      (call-interactively 'occur))))
 
 (defun my-occur-project ()
   "Search text in all open buffers."
@@ -295,6 +301,68 @@
 
 (global-set-key (kbd "C-x g") 'my-git-status)
 (global-set-key (kbd "C-x l") 'my-git-log)
+
+;;; === NAVIGATION CONFIGURATIONS FOR SEARCH RESULTS ===
+
+;; Enhanced isearch navigation
+(with-eval-after-load 'isearch
+  ;; Navigate through isearch matches with up/down arrows
+  (define-key isearch-mode-map (kbd "<down>") 'isearch-repeat-forward)
+  (define-key isearch-mode-map (kbd "<up>") 'isearch-repeat-backward)
+  (define-key isearch-mode-map (kbd "C-n") 'isearch-repeat-forward)
+  (define-key isearch-mode-map (kbd "C-p") 'isearch-repeat-backward)
+  
+  ;; Tab to complete to next match
+  (define-key isearch-mode-map (kbd "TAB") 'isearch-yank-word-or-char)
+  (define-key isearch-mode-map (kbd "<tab>") 'isearch-yank-word-or-char))
+
+;; Enhanced occur navigation
+(with-eval-after-load 'occur
+  ;; Navigate through occur matches with up/down arrows
+  (define-key occur-mode-map (kbd "<down>") 'occur-next)
+  (define-key occur-mode-map (kbd "<up>") 'occur-prev)
+  (define-key occur-mode-map (kbd "C-n") 'occur-next)
+  (define-key occur-mode-map (kbd "C-p") 'occur-prev)
+  
+  ;; TAB = next occurrence
+  (define-key occur-mode-map (kbd "<tab>") 'occur-next)
+  (define-key occur-mode-map (kbd "TAB") 'occur-next)
+  
+  ;; Shift+TAB = previous occurrence
+  (define-key occur-mode-map (kbd "<backtab>") 'occur-prev)
+  (define-key occur-mode-map (kbd "S-TAB") 'occur-prev)
+  
+  ;; Enter to go to occurrence
+  (define-key occur-mode-map (kbd "RET") 'occur-mode-goto-occurrence)
+  (define-key occur-mode-map (kbd "<return>") 'occur-mode-goto-occurrence))
+
+;; Enhanced grep navigation (for grep buffers)
+(defun my-setup-grep-navigation ()
+  "Set up navigation keys for grep buffers."
+  (when (eq major-mode 'grep-mode)
+    (local-set-key (kbd "<down>") 'next-line)
+    (local-set-key (kbd "<up>") 'previous-line)
+    (local-set-key (kbd "TAB") 'compilation-next-error)
+    (local-set-key (kbd "<tab>") 'compilation-next-error)
+    (local-set-key (kbd "<backtab>") 'compilation-previous-error)
+    (local-set-key (kbd "S-TAB") 'compilation-previous-error)
+    (local-set-key (kbd "RET") 'compilation-goto-error)))
+
+(add-hook 'grep-mode-hook 'my-setup-grep-navigation)
+
+;; Enhanced compilation navigation
+(defun my-setup-compilation-navigation ()
+  "Set up navigation keys for compilation buffers."
+  (when (eq major-mode 'compilation-mode)
+    (local-set-key (kbd "<down>") 'next-line)
+    (local-set-key (kbd "<up>") 'previous-line)
+    (local-set-key (kbd "TAB") 'compilation-next-error)
+    (local-set-key (kbd "<tab>") 'compilation-next-error)
+    (local-set-key (kbd "<backtab>") 'compilation-previous-error)
+    (local-set-key (kbd "S-TAB") 'compilation-previous-error)
+    (local-set-key (kbd "RET") 'compilation-goto-error)))
+
+(add-hook 'compilation-mode-hook 'my-setup-compilation-navigation)
 
 ;;; === ADDITIONAL CONFIGURATIONS (DEFERRED) ===
 
