@@ -499,4 +499,4 @@
 (add-hook 'after-init-hook 'my-save-custom-file)
 
 ;; MINIMAL final message
-(message "Starting ULTRA LIGHT Emacs...")
+(message "Starting Emacs...")
