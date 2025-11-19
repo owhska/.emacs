@@ -67,7 +67,7 @@
   (setq lsp-code-action-enable nil)
   
   ;; Load LSP mode
-  (when (require 'lsp-mode nil )
+  (when (require 'lsp-mode nil t)
     ;; Configure hooks for specific languages
     (dolist (hook '((python-mode . lsp-deferred)
                     (js-mode . lsp-deferred)
@@ -150,19 +150,93 @@
   "Restore normal GC after Evil operations."
   (setq gc-cons-threshold 80000000))
 
+;;; === ULTRA FAST FILE SEARCH SYSTEM ===
+
+;; Global settings for case-insensitive search
+(setq case-fold-search t)
+(setq read-file-name-completion-ignore-case t)
+(setq completion-ignore-case t)
+
+;; Main file search system
+(defun my-find-files ()
+  "Case-insensitive file search with intelligent pattern matching.
+Ex: 'Modulo' finds Modulo.java, ModuloMapper.java, ModuloService.java
+    'test.js' finds test.js, unit-test.js, test-utils.js"
+  (interactive)
+  (let ((dir (read-directory-name "Directory: " default-directory))
+        (input (read-string "Search pattern: " (my-get-initial-input))))
+    (find-name-dired dir (my-process-search-pattern input))))
+
+(defun my-get-initial-input ()
+  "Get initial input based on context."
+  (cond
+   ;; If we're in a file buffer, suggest the base name
+   ((buffer-file-name)
+    (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))
+   ;; If there's an active selection, use the selected text
+   ((use-region-p)
+    (buffer-substring-no-properties (region-beginning) (region-end)))
+   ;; Otherwise, empty string
+   (t "")))
+
+(defun my-process-search-pattern (input)
+  "Process search pattern to make it more flexible."
+  (cond
+   ;; If it already has wildcards, use as is
+   ((string-match-p "[*?]" input) input)
+   
+   ;; If it's a filename with extension (ex: Modulo.java)
+   ((string-match-p "\\.[^.]*$" input)
+    (let ((name (file-name-sans-extension input))
+          (ext (file-name-extension input)))
+      (if (string-empty-p name)
+          (concat "*." ext)
+        (concat "*" name "*." ext))))
+   
+   ;; Just text without extension - search in any part of the name
+   (t (concat "*" input "*"))))
+
+;; Fast search with find (even better performance)
+(defun my-fast-find-files ()
+  "Ultra-fast file search using native find."
+  (interactive)
+  (let ((dir (read-directory-name "Directory: " default-directory))
+        (pattern (read-string "Pattern (ex: *Modulo*.java): " "*")))
+    (find-file 
+     (completing-read "Select file: "
+                      (split-string 
+                       (shell-command-to-string 
+                        (format "find '%s' -type f -iname '%s' 2>/dev/null | head -100" 
+                                dir pattern)) "\n" t)))))
+
+;; Search in Git project (if available)
+(defun my-find-in-git-repo ()
+  "Search files in current Git repository."
+  (interactive)
+  (let ((git-root (locate-dominating-file default-directory ".git")))
+    (if git-root
+        (let ((default-directory git-root))
+          (call-interactively 'my-find-files))
+      (call-interactively 'my-find-files))))
+
 ;;; === NATIVE SEARCH/COMPLETION SYSTEM ===
 
 ;; Icomplete (native alternative to Vertico)
 (icomplete-mode 1)
-;;(icomplete-vertical-mode 1)
 (setq completion-styles '(basic partial-completion emacs22))
 (setq completion-category-overrides '((file (styles basic partial-completion))))
+
+;; Settings for case-insensitive completion
+(setq completion-ignore-case t)
+(setq read-buffer-completion-ignore-case t)
+(setq read-file-name-completion-ignore-case t)
 
 ;; Native incremental search
 (setq search-highlight t)
 (setq search-whitespace-regexp ".*?")
 (setq isearch-lazy-count t)
 (setq isearch-allow-scroll t)
+(setq isearch-case-fold-search t)  ; Case-insensitive isearch
 
 ;;; === FAST SEARCH SYSTEM (CONSULT STYLE) ===
 
@@ -233,6 +307,7 @@
   (let ((pattern (read-string "Search in all buffers: ")))
     (multi-occur (buffer-list) pattern)))
 
+
 ;;; === PERSONAL CONFIGURATIONS (Minimal) ===
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
@@ -240,15 +315,10 @@
 (global-set-key (kbd "C-c c") 'compile)
 
 ;; SEARCH SHORTCUTS CONFIGURATION
-(defun my-find-files ()
-  "Search files recursively in directory."
-  (interactive)
-  (let ((dir (read-directory-name "Directory: "))
-        (pattern (read-string "File pattern (ex: *.txt): " "*")))
-    (find-name-dired dir pattern)))
-
 (global-set-key (kbd "C-s") 'my-enhanced-isearch)        ; Incremental search
-(global-set-key (kbd "C-c f") 'my-find-files)            ; File search
+(global-set-key (kbd "C-c f") 'my-find-files)            ; File search (case-insensitive)
+(global-set-key (kbd "C-c F") 'my-fast-find-files)       ; Fast file search
+(global-set-key (kbd "C-c g") 'my-find-in-git-repo)      ; Search in Git repo
 (global-set-key (kbd "C-c r") 'my-grep-in-current-dir)   ; Text search in files
 
 ;; Tab settings
@@ -282,7 +352,7 @@
 
 ;;; === DISABLE UNNECESSARY FEATURES FOR LSP ===
 
-;; Desativa Elementos que interferem com LSP
+;; Disable elements that interfere with LSP
 (setq eldoc-mode nil)
 (global-eldoc-mode -1)
 (tab-bar-mode -1)
@@ -298,7 +368,7 @@
 
 ;; Mode-line with native Git info
 (setq mode-line-format
-  '("%e"  ; erro se o arquivo não terminar com nova linha
+  '("%e"  ; error if file doesn't end with newline
   
     ;; 1. Buffer coding
     (:eval (let ((coding (coding-system-plist buffer-file-coding-system)))
@@ -306,25 +376,25 @@
                (propertize (format " %s " (upcase (plist-get coding :name)))
                          'face 'font-lock-comment-face))))
     
-    " " ; separador
+    " " ; separator
     
     ;; 2. Buffer name
     mode-line-buffer-identification
     
-    " " ; separador
+    " " ; separator
     
     ;; 3. Git version control system
     (:eval (when (and vc-mode (not (string= vc-mode "")))
              (propertize (format " %s " vc-mode)
                          'face 'font-lock-type-face)))
     
-    " " ; separador
+    " " ; separator
     
-    ;; 4. Major mode - só a linguagem
+    ;; 4. Major mode - just the language
     (:eval (propertize (format " %s " (capitalize (symbol-name major-mode)))
                        'face 'font-lock-keyword-face))
     
-    ;; Espaço final para alinhamento
+    ;; Final space for alignment
     " "))
 
 (force-mode-line-update t)
@@ -343,18 +413,13 @@
 (add-to-list 'auto-mode-alist '("\\.exs?\\'" . prog-mode))
 
 ;;; === APPEARANCE CONFIGURATIONS ===
-;;(load-theme 'wombat t)
-;;(load-theme 'misterioso t) ;; bom tema
-;;(load-theme 'leuven-dark t)
-;;(load-theme 'tsdh-dark t)
-;;(load-theme 'tango-dark t)
 
 (custom-set-faces
  ;; Base
  `(default ((t (:background "#121212" :foreground "#EAEAEA"))))
  `(cursor ((t (:background "#F59E0B"))))
  
- ;; Sintaxe básica
+ ;; Basic syntax
  `(font-lock-comment-face ((t (:foreground "#8A8A8D" :italic t))))
  `(font-lock-comment-delimiter-face ((t (:foreground "#737373" :italic t))))
  `(font-lock-string-face ((t (:foreground "#EAEAEA"))))
@@ -382,7 +447,7 @@
  `(mode-line-highlight ((t (:background "#333333" :foreground "#EAEAEA"))))
  `(mode-line-emphasis ((t (:bold t :foreground "#DC2626"))))
  
- ;; Busca
+ ;; Search
  `(isearch ((t (:background "#F59E0B" :foreground "#121212" :bold t))))
  `(lazy-highlight ((t (:background "#3B82F6" :foreground "#121212"))))
  `(match ((t (:background "#8D20B2" :foreground "#121212" :bold t))))
@@ -406,9 +471,9 @@
  `(org-todo ((t (:foreground "#DC2626" :bold t))))
  `(org-done ((t (:foreground "#10B981" :bold t))))
  
- ;; Números de linha
- `(line-number ((t (:foreground "#333333" :background "#121212"))))
- `(line-number-current-line ((t (:foreground "#BEBEBE" :background "#212121" :bold t))))
+ ;; Line numbers - CONFIGURAÇÃO CORRIGIDA
+ `(line-number ((t (:inherit default :foreground "#333333" :background "#121212"))))
+ `(line-number-current-line ((t (:inherit default :foreground "#BEBEBE" :background "#212121" :bold t))))
  
  ;; Parentheses
  `(show-paren-match ((t (:background "#3B82F6" :foreground "#121212" :bold t))))
@@ -423,7 +488,7 @@
  `(warning ((t (:foreground "#F59E0B" :bold t))))
  `(success ((t (:foreground "#10B981" :bold t))))
 
- ;; Adicionais para melhor compatibilidade
+ ;; Additional for better compatibility
  `(header-line ((t (:inherit mode-line))))
  `(tooltip ((t (:background "#212121" :foreground "#EAEAEA"))))
  `(shadow ((t (:foreground "#8A8A8D"))))
@@ -433,23 +498,31 @@
  `(homoglyph ((t (:foreground "#F59E0B"))))
  `(bold ((t (:bold t))))
  `(italic ((t (:italic t)))))
- 
+
 ;; Fonts - DEFER
 (run-with-idle-timer 5 nil
   (lambda ()
     (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))
 
-;;; === NÚMEROS DE LINHA ESCALÁVEIS ===
-(setq display-line-numbers-width 4)
-(setq display-line-numbers-grow-only t)
+;;; === SCALABLE LINE NUMBERS - CONFIGURAÇÃO SIMPLIFICADA ===
 
+;; Remove configurações problemáticas de largura fixa
+(setq display-line-numbers-width nil)  ; Remove largura fixa
+(setq display-line-numbers-grow-only nil)  ; Permite que diminua também
+
+;; Configuração mínima e funcional para números de linha
+(setq display-line-numbers-minor-type t)  ; Números relativos opcionais
+
+;; Função simplificada para números de linha
 (defun my-fix-line-numbers-scale ()
+  "Ajusta números de linha quando texto é escalado - versão simplificada."
   (when display-line-numbers-mode
     (display-line-numbers-mode -1)
     (display-line-numbers-mode 1)))
 
+;; Ajustar números quando o texto é escalado (opcional)
 (add-hook 'text-scale-mode-hook 'my-fix-line-numbers-scale)
-                    
+
 ;;; === INTELLIGENT LINE NUMBERING ===
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'text-mode-hook 'display-line-numbers-mode)
