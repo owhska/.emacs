@@ -464,7 +464,8 @@
   (interactive)
   (let ((default-directory (locate-dominating-file default-directory ".git")))
     (if default-directory
-        (compile "git log --oneline -n 20")
+        (compile "git log")
+        ;;(compile "git log --oneline -n 20")
       (message "Not a git repository"))))
 
 (global-set-key (kbd "C-x g") 'my-git-status)
