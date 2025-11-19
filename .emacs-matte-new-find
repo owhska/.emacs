@@ -67,7 +67,7 @@
   (setq lsp-code-action-enable nil)
   
   ;; Load LSP mode
-  (when (require 'lsp-mode nil )
+  (when (require 'lsp-mode nil t)
     ;; Configure hooks for specific languages
     (dolist (hook '((python-mode . lsp-deferred)
                     (js-mode . lsp-deferred)
@@ -383,11 +383,6 @@ Ex: 'Modulo' finds Modulo.java, ModuloMapper.java, ModuloService.java
 (add-to-list 'auto-mode-alist '("\\.exs?\\'" . prog-mode))
 
 ;;; === APPEARANCE CONFIGURATIONS ===
-;;(load-theme 'wombat t)
-;;(load-theme 'misterioso t) ;; good theme
-;;(load-theme 'leuven-dark t)
-;;(load-theme 'tsdh-dark t)
-;;(load-theme 'tango-dark t)
 
 (custom-set-faces
  ;; Base
@@ -446,9 +441,9 @@ Ex: 'Modulo' finds Modulo.java, ModuloMapper.java, ModuloService.java
  `(org-todo ((t (:foreground "#DC2626" :bold t))))
  `(org-done ((t (:foreground "#10B981" :bold t))))
  
- ;; Line numbers
- `(line-number ((t (:foreground "#333333" :background "#121212"))))
- `(line-number-current-line ((t (:foreground "#BEBEBE" :background "#212121" :bold t))))
+ ;; Line numbers - CONFIGURAÇÃO CORRIGIDA
+ `(line-number ((t (:inherit default :foreground "#333333" :background "#121212"))))
+ `(line-number-current-line ((t (:inherit default :foreground "#BEBEBE" :background "#212121" :bold t))))
  
  ;; Parentheses
  `(show-paren-match ((t (:background "#3B82F6" :foreground "#121212" :bold t))))
@@ -473,23 +468,31 @@ Ex: 'Modulo' finds Modulo.java, ModuloMapper.java, ModuloService.java
  `(homoglyph ((t (:foreground "#F59E0B"))))
  `(bold ((t (:bold t))))
  `(italic ((t (:italic t)))))
- 
+
 ;; Fonts - DEFER
 (run-with-idle-timer 5 nil
   (lambda ()
     (add-to-list 'default-frame-alist '(font . "Iosevka-14"))))
 
-;;; === SCALABLE LINE NUMBERS ===
-(setq display-line-numbers-width 4)
-(setq display-line-numbers-grow-only t)
+;;; === SCALABLE LINE NUMBERS - CONFIGURAÇÃO SIMPLIFICADA ===
 
+;; Remove configurações problemáticas de largura fixa
+(setq display-line-numbers-width nil)  ; Remove largura fixa
+(setq display-line-numbers-grow-only nil)  ; Permite que diminua também
+
+;; Configuração mínima e funcional para números de linha
+(setq display-line-numbers-minor-type t)  ; Números relativos opcionais
+
+;; Função simplificada para números de linha
 (defun my-fix-line-numbers-scale ()
+  "Ajusta números de linha quando texto é escalado - versão simplificada."
   (when display-line-numbers-mode
     (display-line-numbers-mode -1)
     (display-line-numbers-mode 1)))
 
+;; Ajustar números quando o texto é escalado (opcional)
 (add-hook 'text-scale-mode-hook 'my-fix-line-numbers-scale)
-                    
+
 ;;; === INTELLIGENT LINE NUMBERING ===
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'text-mode-hook 'display-line-numbers-mode)
