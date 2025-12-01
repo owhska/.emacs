@@ -328,6 +328,7 @@
  '(my-insert-face ((t (:background "#3B82F6" :foreground "#FFFFFF" :bold t))))
  '(my-visual-face ((t (:background "#DC2626" :foreground "#FFFFFF" :bold t)))))
 
+
 (defun my-mode-indicator ()
   "Mode indicator for mode-line."
   (cond
@@ -380,6 +381,20 @@
   (global-eldoc-mode 1)
   (setq eldoc-idle-delay 0.5))
 
+(defun my-fix-dired-mode ()
+  "Fix dired mode to always work."
+  (when (eq major-mode 'dired-mode)
+    ;; Não aplicar nosso modo normal ao dired
+    (setq my-current-mode nil)
+    ;; Permitir que dired use seu mapa original
+    (use-local-map nil)
+    ;; Aplicar as teclas Vim para dired
+    (my-dired-setup)))
+
+;; Reconfigurar o hook do dired
+(remove-hook 'dired-mode-hook 'my-dired-setup) 
+(add-hook 'dired-mode-hook 'my-fix-dired-mode)  
+
 ;;; === FALLBACK KEYS ===
 (defun display-warning (&rest _args) nil)
 (setq warning-minimum-level :emergency)
@@ -389,6 +404,9 @@
 (global-set-key (kbd "C-x C-f") 'find-file)
 (global-set-key (kbd "C-x k") 'kill-buffer)
 (global-set-key (kbd "C-x b") 'switch-to-buffer)
+(global-set-key (kbd "C-c x") 'execute-extended-command)
+(global-set-key (kbd "C-x d") 'dired)                   
+(global-set-key (kbd "C-x C-d") 'dired-other-window)    
 (global-set-key (kbd "C-x C-c") (lambda () (interactive) (save-buffer) (kill-buffer)))
 
 ;;; === AUTOMATIC NORMAL MODE SETUP ===
