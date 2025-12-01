@@ -1,0 +1,475 @@
+;;; === ULTRA LIGHT EMACS CONFIG ===
+;; No packages - pure Emacs vanilla
+
+;;; === RADICAL PERFORMANCE ===
+(defvar my-emacs-start-time (current-time))
+
+(setq gc-cons-threshold 400000000)
+(setq read-process-output-max (* 16 1024 1024))
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-message t)
+(setq inhibit-startup-echo-area-message t)
+(setq initial-major-mode 'fundamental-mode)
+(setq initial-scratch-message nil)
+(setq message-log-max 1000)
+(setq auto-save-default nil)
+(setq create-lockfiles nil)
+
+;; UI performance
+(setq idle-update-delay 1.0)
+(setq redisplay-skip-fontification-on-input t)
+(setq auto-window-vscroll nil)
+(setq fast-but-imprecise-scrolling t)
+
+;; Minimal interface
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(setq visible-bell nil)
+(setq ring-bell-function 'ignore)
+(setq use-dialog-box nil)
+(setq use-file-dialog nil)
+(setq inhibit-compacting-font-caches t)
+
+;;; === VIM MODE SYSTEM ===
+
+(defvar my-current-mode 'normal)
+(defvar my-original-global-map nil)  ; Será definido depois
+(defvar my-normal-map (make-sparse-keymap))
+
+;; Função para bloquear teclas de caractere simples
+(defun my-block-unmapped-keys ()
+  "Block unmapped character keys in normal mode."
+  (interactive)
+  (message ""))
+
+;; Função para definir teclas ignoradas
+(defun my-setup-blocked-keys ()
+  "Setup blocked keys for normal mode."
+  ;; Lista de teclas que DEVEM ser bloqueadas (caracteres simples)
+  (let ((blocked-keys 
+         '("a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m"
+           "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z"
+           "A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L" "M"
+           "N" "O" "P" "Q" "R" "S" "T" "U" "V" "W" "X" "Y" "Z"
+           "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
+           "!" "@" "#" "$" "%" "^" "&" "*" "(" ")" "-" "_" "=" "+"
+           "[" "]" "{" "}" "\\" "|" ";" ":" "'" "\"" "," "." "/" "<" ">"
+           "?" "`" "~" " ")))
+    (dolist (key blocked-keys)
+      ;; Só define se a tecla ainda não tem binding
+      (when (not (lookup-key my-normal-map (kbd key)))
+        (define-key my-normal-map (kbd key) 'my-block-unmapped-keys)))))
+
+;; Setup normal mode keybindings
+(defun my-setup-normal-map ()
+  "Setup normal mode keybindings."
+  (setq my-normal-map (make-sparse-keymap))
+  
+  ;; === MOVEMENT ===
+  (define-key my-normal-map (kbd "h") 'backward-char)
+  (define-key my-normal-map (kbd "j") 'next-line)
+  (define-key my-normal-map (kbd "k") 'previous-line)
+  (define-key my-normal-map (kbd "l") 'forward-char)
+  (define-key my-normal-map (kbd "w") 'forward-word)
+  (define-key my-normal-map (kbd "b") 'backward-word)
+  (define-key my-normal-map (kbd "0") 'move-beginning-of-line)
+  (define-key my-normal-map (kbd "$") 'move-end-of-line)
+  (define-key my-normal-map (kbd "G") 'end-of-buffer)
+  (define-key my-normal-map (kbd "gg") 'beginning-of-buffer)
+  
+  ;; === EDITING ===
+  (define-key my-normal-map (kbd "x") 'delete-char)
+  (define-key my-normal-map (kbd "X") 'delete-backward-char)
+  (define-key my-normal-map (kbd "dd") (lambda () (interactive) (kill-whole-line 1)))
+  (define-key my-normal-map (kbd "D") 'kill-line)
+  (define-key my-normal-map (kbd "dw") (lambda () (interactive) (kill-word 1)))
+  (define-key my-normal-map (kbd "cw") (lambda () (interactive) (kill-word 1) (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "p") 'yank)
+  (define-key my-normal-map (kbd "P") (lambda () (interactive) (yank) (backward-char)))
+  (define-key my-normal-map (kbd "u") 'undo)
+  (define-key my-normal-map (kbd "C-r") 'undo-redo)
+  (define-key my-normal-map (kbd "yy") (lambda () (interactive) 
+                                        (kill-ring-save (line-beginning-position) (line-end-position))))
+  
+  ;; === MODE SWITCHING ===
+  (define-key my-normal-map (kbd "i") 'my-enter-insert-mode)
+  (define-key my-normal-map (kbd "a") (lambda () (interactive) (forward-char) (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "I") (lambda () (interactive) (move-beginning-of-line nil) (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "A") (lambda () (interactive) (move-end-of-line nil) (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "o") (lambda () (interactive) 
+                                        (end-of-line) 
+                                        (newline-and-indent) 
+                                        (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "O") (lambda () (interactive) 
+                                        (beginning-of-line) 
+                                        (newline-and-indent) 
+                                        (previous-line) 
+                                        (end-of-line) 
+                                        (my-enter-insert-mode)))
+  (define-key my-normal-map (kbd "v") 'my-enter-visual-mode)
+  (define-key my-normal-map (kbd "V") (lambda () (interactive) 
+                                        (set-mark-command nil) 
+                                        (next-line) 
+                                        (setq my-current-mode 'visual)))
+  
+  ;; === SEARCH ===
+  (define-key my-normal-map (kbd "/") 'isearch-forward)
+  (define-key my-normal-map (kbd "?") 'isearch-backward)
+  
+  ;; === COLON COMMANDS ===
+  (define-key my-normal-map (kbd ":") 'my-colon-command)
+  
+  ;; === OTHER ===
+  (define-key my-normal-map (kbd "r") (lambda () (interactive) 
+                                        (let ((char (read-char "Replace with: ")))
+                                          (delete-char 1)
+                                          (insert char))))
+  (define-key my-normal-map (kbd "J") (lambda () (interactive) 
+                                        (end-of-line)
+                                        (delete-char 1)
+                                        (just-one-space)))
+  
+  ;; Allow some Ctrl keys
+  (define-key my-normal-map (kbd "C-f") 'scroll-up-command)
+  (define-key my-normal-map (kbd "C-b") 'scroll-down-command)
+  
+  ;; Agora bloqueia as teclas não mapeadas
+  (my-setup-blocked-keys))
+
+;;; === MODE FUNCTIONS ===
+
+(defun my-enter-normal-mode ()
+  "Switch to normal mode."
+  (interactive)
+  (when (and (not (minibufferp))
+             (not (eq major-mode 'dired-mode)))
+    (setq my-current-mode 'normal)
+    (deactivate-mark)
+    
+    ;; Criar mapa que herda do global para teclas modificadoras
+    (let ((combined-map (make-sparse-keymap)))
+      ;; Copiar todas as bindings do my-normal-map
+      (setq combined-map (copy-keymap my-normal-map))
+      ;; Setar parent para global-map (herda Ctrl/Meta combos)
+      (set-keymap-parent combined-map global-map)
+      (use-local-map combined-map))
+    
+    (force-mode-line-update)))
+
+(defun my-enter-insert-mode ()
+  "Switch to insert mode."
+  (interactive)
+  (when (not (minibufferp))
+    (setq my-current-mode 'insert)
+    (deactivate-mark)
+    (use-local-map my-original-global-map)
+    (force-mode-line-update)))
+
+(defun my-enter-visual-mode ()
+  "Switch to visual mode."
+  (interactive)
+  (when (not (minibufferp))
+    (setq my-current-mode 'visual)
+    (use-local-map my-normal-map)
+    (set-mark-command nil)
+    (force-mode-line-update)))
+
+;; Global escape handler
+(defun my-global-escape ()
+  "Handle ESC globally."
+  (interactive)
+  (cond
+   ((minibufferp)
+    (abort-recursive-edit))
+   (isearch-mode
+    (isearch-cancel))
+   (t
+    (deactivate-mark)
+    (my-enter-normal-mode))))
+
+;; Set global escape binding
+(global-set-key (kbd "<escape>") 'my-global-escape)
+(global-set-key (kbd "C-[") 'my-global-escape)
+
+;;; === DIRED SUPPORT ===
+
+(defun my-dired-setup ()
+  "Setup Vim keys for dired mode."
+  (when (eq major-mode 'dired-mode)
+    (local-set-key (kbd "j") 'dired-next-line)
+    (local-set-key (kbd "k") 'dired-previous-line)
+    (local-set-key (kbd "h") 'dired-up-directory)
+    (local-set-key (kbd "l") 'dired-find-file)
+    (local-set-key (kbd "o") 'dired-find-file-other-window)
+    (local-set-key (kbd "gg") (lambda () (interactive) (goto-char (point-min)) (dired-next-line 1)))
+    (local-set-key (kbd "G") (lambda () (interactive) (goto-char (point-max)) (revert-buffer)))
+    (local-set-key (kbd "dd") 'dired-flag-file-deletion)
+    (local-set-key (kbd "x") 'dired-do-flagged-delete)
+    (local-set-key (kbd "u") 'dired-unmark)
+    (local-set-key (kbd "U") 'dired-unmark-all-marks)
+    (local-set-key (kbd "m") 'dired-mark)
+    (local-set-key (kbd "y") 'dired-copy-filename-as-kill)
+    (local-set-key (kbd "p") (lambda () (interactive) (dired-create-empty-file (read-string "Filename: "))))
+    (local-set-key (kbd "i") (lambda () (interactive) 
+                               (setq my-current-mode 'insert)
+                               (use-local-map my-original-global-map)))
+    (local-set-key (kbd "<escape>") 'my-global-escape)))
+
+(add-hook 'dired-mode-hook 'my-dired-setup)
+
+;;; === COLON COMMANDS ===
+
+(defun my-colon-command ()
+  "Execute Vim-style colon commands."
+  (interactive)
+  (let ((cmd (read-string ":")))
+    (cond
+     ((string-prefix-p "e " cmd)
+      (find-file (substring cmd 2)))
+     ((string= cmd "w") (save-buffer))
+     ((string= cmd "q") (kill-buffer))
+     ((string= cmd "wq") (progn (save-buffer) (kill-buffer)))
+     ((string= cmd "bn") (next-buffer))
+     ((string= cmd "bp") (previous-buffer))
+     ((string-prefix-p "b " cmd)
+      (switch-to-buffer (substring cmd 2)))
+     ((string= cmd "find") (my-find-files))
+     ((string= cmd "grep") (my-grep-text))
+     ((string= cmd "gs") (my-git-status))
+     ((string= cmd "term") (ansi-term (getenv "SHELL")))
+     ((string= cmd "split") (split-window-below))
+     ((string= cmd "vsplit") (split-window-right))
+     ((string= cmd "only") (delete-other-windows))
+     ((string= cmd "ls") (list-buffers))
+     (t (message "Unknown command: %s" cmd)))))
+
+;;; === SEARCH FUNCTIONS ===
+
+(defun my-find-files ()
+  "Find files."
+  (interactive)
+  (let ((dir (read-directory-name "Directory: " default-directory))
+        (pattern (read-string "Pattern: " "*")))
+    (find-file 
+     (completing-read "File: "
+                      (split-string 
+                       (shell-command-to-string 
+                        (format "find '%s' -type f -name '%s' 2>/dev/null | head -30" 
+                                dir pattern)) "\n" t)))))
+
+(defun my-grep-text ()
+  "Grep for text."
+  (interactive)
+  (let ((pattern (read-string "Search: "))
+        (dir (read-directory-name "Directory: " default-directory)))
+    (grep (format "grep -nH -r \"%s\" %s" pattern dir))))
+
+;;; === GIT ===
+
+(defun my-git-status ()
+  "Git status."
+  (interactive)
+  (let ((git-dir (locate-dominating-file default-directory ".git")))
+    (if git-dir
+        (compile "git status")
+      (message "Not a git repo"))))
+
+(defun my-git-branch ()
+  "Current git branch."
+  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
+    (with-temp-buffer
+      (cd git-dir)
+      (when (zerop (call-process "git" nil t nil "branch" "--show-current"))
+        (string-trim (buffer-string))))))
+
+;;; === APPEARANCE ===
+
+(custom-set-faces
+ '(default ((t (:background "#121212" :foreground "#EAEAEA"))))
+ '(cursor ((t (:background "#F59E0B"))))
+ 
+ ;; Basic syntax (from first config)
+ '(font-lock-comment-face ((t (:foreground "#8A8A8D" :italic t))))
+ '(font-lock-comment-delimiter-face ((t (:foreground "#737373" :italic t))))
+ '(font-lock-string-face ((t (:foreground "#EAEAEA"))))
+ '(font-lock-doc-face ((t (:foreground "#BEBEBE" :italic t))))
+ '(font-lock-number-face ((t (:foreground "#FBBF24"))))
+ '(font-lock-keyword-face ((t (:foreground "#059669" :bold t))))
+ '(font-lock-function-name-face ((t (:foreground "#DC2626"))))
+ '(font-lock-type-face ((t (:foreground "#FBBF24"))))
+ '(font-lock-constant-face ((t (:foreground "#D97706"))))
+ '(font-lock-builtin-face ((t (:foreground "#F59E0B"))))
+ '(font-lock-variable-name-face ((t (:foreground "#EAEAEA"))))
+ '(font-lock-preprocessor-face ((t (:foreground "#FBBF24" :bold t))))
+ '(font-lock-warning-face ((t (:foreground "#DC2626" :background "#262626" :bold t))))
+ 
+ ;; UI
+ '(hl-line ((t (:background "#212121"))))
+ '(region ((t (:background "#333333" :foreground "#FFFFFF"))))
+ '(highlight ((t (:background "#262626"))))
+ '(fringe ((t (:background "#121212" :foreground "#333333"))))
+ '(vertical-border ((t (:foreground "#333333"))))
+ 
+ ;; Mode line
+ '(mode-line ((t (:background "#212121" :foreground "#EAEAEA" :box (:line-width 1 :color "#333333")))))
+ '(mode-line-inactive ((t (:background "#0D0D0D" :foreground "#8A8A8D" :box (:line-width 1 :color "#262626")))))
+ 
+ ;; Search (from first config)
+ '(isearch ((t (:background "#F59E0B" :foreground "#121212" :bold t))))
+ '(lazy-highlight ((t (:background "#3B82F6" :foreground "#121212"))))
+ '(match ((t (:background "#8D20B2" :foreground "#121212" :bold t))))
+ 
+ ;; Minibuffer
+ '(minibuffer-prompt ((t (:foreground "#3B82F6" :bold t))))
+ 
+ ;; Mode indicators
+ '(my-normal-face ((t (:background "#059669" :foreground "#FFFFFF" :bold t))))
+ '(my-insert-face ((t (:background "#3B82F6" :foreground "#FFFFFF" :bold t))))
+ '(my-visual-face ((t (:background "#DC2626" :foreground "#FFFFFF" :bold t)))))
+
+(defun my-mode-indicator ()
+  "Mode indicator for mode-line."
+  (cond
+   ((eq my-current-mode 'normal)
+    (propertize " NORMAL " 'face 'my-normal-face))
+   ((eq my-current-mode 'insert)
+    (propertize " INSERT " 'face 'my-insert-face))
+   ((eq my-current-mode 'visual)
+    (propertize " VISUAL " 'face 'my-visual-face))
+   (t "")))
+
+;; Mode-line
+(setq-default mode-line-format
+              '("%e"
+                (:eval (my-mode-indicator))
+                " "
+                (:propertize "%b" face mode-line-buffer-id)
+                "  "
+                (:eval (when-let ((branch (my-git-branch)))
+                         (propertize branch 'face 'font-lock-type-face)))
+                "   "
+                "%l:%c"
+                "   "
+                (:eval (when (buffer-modified-p) "●"))))
+
+;; Line numbers
+(when (fboundp 'display-line-numbers-mode)
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+  (add-hook 'text-mode-hook 'display-line-numbers-mode))
+
+;; Font
+(add-to-list 'default-frame-alist '(font . "Monospace-12"))
+
+;;; === EDITING ===
+
+(electric-pair-mode 1)
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+(setq tab-width 4)
+(setq-default indent-tabs-mode nil)
+
+;;; === COMPLETION ===
+
+(icomplete-mode 1)
+(setq completion-styles '(basic partial-completion))
+(setq completion-ignore-case t)
+(setq read-file-name-completion-ignore-case t)
+
+(when (fboundp 'global-eldoc-mode)
+  (global-eldoc-mode 1)
+  (setq eldoc-idle-delay 0.5))
+
+;;; === FALLBACK KEYS ===
+(defun display-warning (&rest _args) nil)
+(setq warning-minimum-level :emergency)
+(global-set-key (kbd "C-c c") 'compile)
+(global-set-key (kbd "C-s") 'isearch-forward)
+(global-set-key (kbd "C-x C-s") 'save-buffer)
+(global-set-key (kbd "C-x C-f") 'find-file)
+(global-set-key (kbd "C-x k") 'kill-buffer)
+(global-set-key (kbd "C-x b") 'switch-to-buffer)
+(global-set-key (kbd "C-x C-c") (lambda () (interactive) (save-buffer) (kill-buffer)))
+
+;;; === AUTOMATIC NORMAL MODE SETUP ===
+
+(defun my-setup-buffer-for-normal-mode ()
+  "Setup current buffer for normal mode."
+  (when (and (not (minibufferp))
+             (not (eq major-mode 'dired-mode))
+             (not (eq major-mode 'term-mode))
+             (not (eq major-mode 'shell-mode))
+             (not (eq major-mode 'eshell-mode)))
+    (my-enter-normal-mode)))
+
+(defun my-setup-new-buffer ()
+  "Setup normal mode for new buffers."
+  (my-setup-buffer-for-normal-mode))
+
+(defun my-setup-file-buffer ()
+  "Setup normal mode for file buffers."
+  (run-with-idle-timer 0.01 nil 'my-setup-buffer-for-normal-mode))
+
+(defun my-initialize-normal-mode ()
+  "Initialize normal mode system."
+  (my-setup-normal-map)  ; Cria o mapa normal
+  (setq my-original-global-map (copy-keymap global-map))  ; Salva o keymap CORRETO
+  (my-setup-buffer-for-normal-mode)
+  (add-hook 'after-change-major-mode-hook 'my-setup-new-buffer)
+  (add-hook 'find-file-hook 'my-setup-file-buffer)
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (unless (or (minibufferp)
+                  (eq major-mode 'dired-mode)
+                  (eq major-mode 'term-mode)
+                  (eq major-mode 'shell-mode)
+                  (eq major-mode 'eshell-mode))
+        (my-enter-normal-mode)))))
+
+;;; === OPTIMIZATIONS ===
+
+(defun my-minibuffer-setup ()
+  (setq gc-cons-threshold 800000000))
+
+(defun my-minibuffer-exit ()
+  (setq gc-cons-threshold 400000000)
+  (my-enter-normal-mode))
+
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+(add-hook 'minibuffer-exit-hook 'my-minibuffer-exit)
+
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save/" t)))
+
+(defun my-always-yes (&rest args) t)
+(advice-add 'yes-or-no-p :override 'my-always-yes)
+(setq confirm-nonexistent-file-or-buffer nil)
+
+;;; === STARTUP ===
+
+(defun my-show-startup-time ()
+  (let ((elapsed (float-time (time-subtract (current-time) my-emacs-start-time))))
+    (message "Emacs loaded in %.2f seconds" elapsed)))
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold 80000000)
+            (setq auto-save-default t)
+            (my-show-startup-time)))
+
+(add-hook 'emacs-startup-hook 'toggle-frame-maximized)
+
+(add-hook 'window-configuration-change-hook
+          (lambda ()
+            (unless (or (active-minibuffer-window)
+                        (eq major-mode 'dired-mode))
+              (my-enter-normal-mode))))
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
+
+;;; === INITIALIZE NOW ===
+(my-initialize-normal-mode)
+
+(message "Starting Emacs...")
