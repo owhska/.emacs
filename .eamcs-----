@@ -709,9 +709,10 @@
 ;; FINAL GC reset
 (add-hook 'emacs-startup-hook
   (lambda ()
-    (setq gc-cons-threshold 80000000)
-    (setq auto-save-default t)
-    (message "Emacs loaded!")))
+    (setq gc-cons-threshold 80000000)  ; 80MB after startup
+    (setq auto-save-default t)  ; Re-enable auto-save
+    (message "Emacs loaded in %.2f seconds" 
+             (float-time (time-subtract after-init-time before-init-time)))))
 
 ;;; === CUSTOM FILE CONFIGURATION ===
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
