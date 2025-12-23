@@ -1,0 +1,214 @@
+;;; === CRITICAL PERFORMANCE CONFIGURATIONS ===
+(setq gc-cons-threshold 400000000)
+(setq read-process-output-max (* 16 1024 1024))
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-message t)
+(setq inhibit-startup-echo-area-message t)
+(setq initial-major-mode 'fundamental-mode)
+(setq initial-scratch-message nil)
+(setq message-log-max 1000)
+(setq auto-save-default nil)
+(setq create-lockfiles nil)
+
+;; Radical UI performance
+(setq idle-update-delay 2.0)
+(setq redisplay-skip-fontification-on-input t)
+(setq auto-window-vscroll nil)
+(setq fast-but-imprecise-scrolling t)
+
+;; ULTRA radical minimal interface
+(tool-bar-mode -1)
+(menu-bar-mode -1) 
+(scroll-bar-mode -1)
+(setq visible-bell nil)
+(setq ring-bell-function 'ignore)
+(setq use-dialog-box nil)
+(setq use-file-dialog nil)
+(setq inhibit-compacting-font-caches t)
+
+;;; === PACKAGE SYSTEM ===
+(require 'package)
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("gnu" . "https://elpa.gnu.org/packages/")))
+(package-initialize)
+
+;;; === SIMPLE POPUP SYSTEM (Sem conflitos) ===
+
+;; Função para garantir que os pacotes estão instalados
+(defun my-ensure-packages ()
+  "Instala pacotes essenciais se necessário."
+  (unless (package-installed-p 'vertico)
+    (package-refresh-contents)
+    (package-install 'vertico))
+  (unless (package-installed-p 'consult)
+    (package-install 'consult))
+  (unless (package-installed-p 'orderless)
+    (package-install 'orderless)))
+
+;; Carrega a interface com popups APENAS se em GUI
+(defun my-setup-popup-interface ()
+  "Configura interface com popups de forma segura."
+  (my-ensure-packages)
+  
+  ;; Habilita vertico
+  (when (require 'vertico nil t)
+    (vertico-mode 1)
+    (setq vertico-count 15
+          vertico-cycle t))
+  
+  ;; Orderless completion
+  (when (require 'orderless nil t)
+    (setq completion-styles '(orderless basic)
+          completion-category-defaults nil))
+  
+  ;; Consult commands
+  (when (require 'consult nil t)
+    (setq consult-preview-key "M-."
+          consult-narrow-key "<")))
+
+;; Carrega depois de 1 segundo
+(run-with-idle-timer 1 nil 'my-setup-popup-interface)
+
+;;; === FUNÇÕES DE BUSCA SIMPLES ===
+
+;; Função principal de busca de arquivos
+(defun my-find-file-popup ()
+  "Busca arquivos com interface moderna."
+  (interactive)
+  (if (fboundp 'consult-find)
+      (consult-find)
+    (call-interactively 'find-file)))
+
+;; Busca em buffer
+(defun my-switch-buffer-popup ()
+  "Troca de buffer com interface moderna."
+  (interactive)
+  (if (fboundp 'consult-buffer)
+      (consult-buffer)
+    (call-interactively 'switch-to-buffer)))
+
+;; Grep
+(defun my-grep-popup ()
+  "Busca texto em arquivos."
+  (interactive)
+  (if (fboundp 'consult-grep)
+      (consult-grep)
+    (call-interactively 'grep)))
+
+;;; === EVIL MODE (Configuração mínima) ===
+(defun my-setup-evil-mode ()
+  "Configura Evil Mode."
+  (unless (package-installed-p 'evil)
+    (package-refresh-contents)
+    (package-install 'evil))
+  
+  (when (require 'evil nil t)
+    (evil-mode 1)
+    
+    ;; Keybindings básicos
+    (define-key evil-normal-state-map (kbd "C-s") 'consult-line)
+    (define-key evil-insert-state-map (kbd "C-s") 'consult-line)
+    (define-key evil-visual-state-map (kbd "C-s") 'consult-line)))
+
+(run-with-idle-timer 1.5 nil 'my-setup-evil-mode)
+
+;;; === CONFIGURAÇÕES ESSENCIAIS ===
+
+;; Clipboard
+(setq select-enable-clipboard t)
+(setq select-enable-primary t)
+
+;; Tab settings
+(setq tab-width 4)
+(setq-default indent-tabs-mode nil)
+
+;; Search
+(setq case-fold-search t)
+(setq isearch-case-fold-search t)
+
+;;; === KEYBINDINGS PRINCIPAIS ===
+
+;; Atalhos de busca (SEMPRE funcionam)
+(global-set-key (kbd "C-s") 'consult-line)
+(global-set-key (kbd "C-x C-f") 'find-file)
+(global-set-key (kbd "C-c f") 'my-find-file-popup)
+(global-set-key (kbd "C-x b") 'my-switch-buffer-popup)
+(global-set-key (kbd "C-c r") 'my-grep-popup)
+(global-set-key (kbd "C-c c") 'compile)
+(global-set-key (kbd "C-c x") 'execute-extended-command)
+(global-set-key (kbd "C-x g") 'magit-status)
+
+;;; === APPEARANCE ===
+
+;; Tema escuro simples
+(set-face-attribute 'default nil
+                    :background "#181818"
+                    :foreground "#e4e4ef"
+                    :family "Iosevka"
+                    :height 140)
+
+(set-face-attribute 'mode-line nil
+                    :background "#282828"
+                    :foreground "#e4e4ef"
+                    :box '(:line-width 1 :color "#303030"))
+
+(set-face-attribute 'region nil
+                    :background "#303030"
+                    :foreground "#e4e4ef")
+
+;; Line numbers
+(global-display-line-numbers-mode 1)
+(setq display-line-numbers-type 'relative)
+
+;;; === FUNÇÕES ÚTEIS ===
+
+;; Fast file search fallback
+(defun my-quick-find ()
+  "Busca rápida de arquivos (fallback)."
+  (interactive)
+  (let ((default-directory (read-directory-name "Directory: "))
+        (pattern (read-string "Pattern: " "*")))
+    (find-file
+     (completing-read "File: "
+                      (split-string
+                       (shell-command-to-string
+                        (format "find '%s' -type f -name '%s' 2>/dev/null | head -50"
+                                default-directory pattern))
+                       "\n" t)))))
+
+;; Git integration simples
+(defun my-git-status ()
+  "Git status rápido."
+  (interactive)
+  (let ((default-directory (locate-dominating-file default-directory ".git")))
+    (if default-directory
+        (compile "git status")
+      (message "Not in git repo"))))
+
+;;; === FINAL SETUP ===
+
+;; Auto-save depois do startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold 80000000)
+            (setq auto-save-default t)
+            (message "✓ Emacs pronto!")))
+
+;; Maximiza janela
+(add-hook 'emacs-startup-hook 'toggle-frame-maximized)
+
+;;; === DEBUG HELPER ===
+;; Adiciona este comando para diagnóstico
+(defun my-debug-popups ()
+  "Diagnóstico do sistema de popups."
+  (interactive)
+  (message "=== DEBUG INFO ===")
+  (message "Display graphic: %s" (display-graphic-p))
+  (message "Vertico available: %s" (featurep 'vertico))
+  (message "Consult available: %s" (featurep 'consult))
+  (message "Vertico mode: %s" (bound-and-true-p vertico-mode))
+  (message "=== END DEBUG ==="))
+
+(global-set-key (kbd "C-c d") 'my-debug-popups)
+
+(message "Carregando Emacs...")
