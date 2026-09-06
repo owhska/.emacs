@@ -58,6 +58,10 @@
 (require 'evil)
 (evil-mode 1)
 
+;;; === SHELL USADO PELO COMPILE / SHELL-COMMAND ===
+(setq shell-file-name "C:/Program Files/Git/bin/bash.exe")
+(setq shell-command-switch "-c")
+
 ;;; === CONFIGURAÇÃO DE COMPLETION COM SUGESTÕES AUTOMÁTICAS ===
 
 ;; Ativa completion automático
@@ -183,12 +187,21 @@ Mostra apenas 'Buscar: ' no prompt."
 (electric-pair-mode 1)
 (show-paren-mode 1)
 (setq show-paren-delay 0)
-(setq tab-width 4)
+(setq-default tab-width 4)
 (setq-default indent-tabs-mode nil)
 (setq-default standard-indent 4)
 (setq-default c-basic-offset 4)
 (setq-default js-indent-level 4)
 (setq-default python-indent-offset 4)
+(electric-indent-mode -1)
+
+;;; === TAB "burro" estilo Vim no Insert ===
+(defun my-insert-tab ()
+  "Insere espaços fixos (tab-width) sem recalcular indentação sintática."
+  (interactive)
+  (insert (make-string tab-width ?\s)))
+
+(evil-define-key 'insert 'global (kbd "TAB") 'my-insert-tab)
 
 ;;; === KEYBINDS ===
 
