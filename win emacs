@@ -1,0 +1,290 @@
+;;; === ULTRA LIGHT EMACS CONFIG ===
+;; Vanilla + Evil (única exceção)
+
+;;; === RADICAL PERFORMANCE ===
+(defvar my-emacs-start-time (current-time))
+
+(setq gc-cons-threshold 400000000)
+(setq read-process-output-max (* 16 1024 1024))
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-message t)
+(setq inhibit-startup-echo-area-message t)
+(setq initial-major-mode 'fundamental-mode)
+(setq initial-scratch-message nil)
+(setq message-log-max 1000)
+(setq auto-save-default nil)
+(setq create-lockfiles nil)
+
+;; UI performance
+(setq idle-update-delay 1.0)
+(setq redisplay-skip-fontification-on-input t)
+(setq auto-window-vscroll nil)
+(setq fast-but-imprecise-scrolling t)
+
+(icomplete-mode 1)
+(setq icomplete-show-matches-on-no-input t)
+(setq icomplete-hide-common-prefix t)
+(setq icomplete-prospects-height 1)
+
+;; Minimal interface
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(setq visible-bell nil)
+(setq ring-bell-function 'ignore)
+(setq use-dialog-box nil)
+(setq use-file-dialog nil)
+(setq inhibit-compacting-font-caches t)
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+;; Garantir o HOME
+(setenv "HOME" "C:/Users/mathe")
+(setq default-directory "C:/Users/mathe/")
+
+;;; === PACKAGE.EL (só pro evil) ===
+(require 'package)
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                          ("gnu"   . "https://elpa.gnu.org/packages/")))
+(package-initialize)
+
+(unless (package-installed-p 'evil)
+  (package-refresh-contents)
+  (package-install 'evil))
+
+(setq evil-want-integration t)
+(setq evil-want-keybinding nil) ;; evita conflito, mesmo sem evil-collection
+(setq evil-undo-system 'undo-redo)
+
+(require 'evil)
+(evil-mode 1)
+
+;;; === CONFIGURAÇÃO DE COMPLETION COM SUGESTÕES AUTOMÁTICAS ===
+
+;; Ativa completion automático
+(setq completion-auto-help t)
+(setq completion-auto-select 'next)
+(setq completion-show-help t)
+(setq completions-detailed t)
+(setq completion-ignore-case t)
+(setq read-file-name-completion-ignore-case t)
+(setq read-buffer-completion-ignore-case t)
+(setq completion-min-length 1) ;; Mostra sugestões após 1 caractere
+(setq completion-cycle-threshold 3)
+(setq completion-styles '(flex basic partial-completion))
+
+;; Habilita shadows de arquivos
+(setq file-name-shadow-mode t)
+(setq file-name-shadow-properties '(invisible t))
+
+;;; === DIRED + EVIL (sem quebrar os binds nativos) ===
+
+(evil-set-initial-state 'dired-mode 'motion)
+
+(with-eval-after-load 'wdired
+  (evil-set-initial-state 'wdired-mode 'normal))
+
+(with-eval-after-load 'dired
+  (evil-define-key 'motion dired-mode-map
+    (kbd "RET") 'dired-find-file
+    "l"         'dired-find-file
+    "h"         'dired-up-directory))
+
+;;; === DIRED NO WINDOWS (ls-lisp) ===
+
+(require 'ls-lisp)
+(setq ls-lisp-use-insert-directory-program nil)
+(setq ls-lisp-dirs-first t)
+(setq ls-lisp-verbosity nil)
+(setq dired-listing-switches "-al")
+(setq dired-use-ls-dired nil)
+(setq dired-auto-revert-buffer t)
+(put 'dired-find-alternate-file 'disabled nil)
+
+;;; === GIT ===
+
+(defun my-git-status ()
+  "Git status."
+  (interactive)
+  (let ((git-dir (locate-dominating-file default-directory ".git")))
+    (if git-dir
+        (compile "git status")
+      (message "Not a git repo"))))
+
+(defun my-git-branch ()
+  "Current git branch."
+  (when-let ((git-dir (locate-dominating-file default-directory ".git")))
+    (with-temp-buffer
+      (cd git-dir)
+      (when (zerop (call-process "git" nil t nil "branch" "--show-current"))
+        (string-trim (buffer-string))))))
+
+(defun my-git-log ()
+  "Git log compacto."
+  (interactive)
+  (let ((git-dir (locate-dominating-file default-directory ".git")))
+    (if git-dir
+        (compile "git log --oneline --graph --decorate -30")
+      (message "Not a git repo"))))
+
+(defun my-grep-rn ()
+  "Grep -rn com busca recursiva no diretório atual.
+Mostra apenas 'Buscar: ' no prompt."
+  (interactive)
+  (let* ((dir (expand-file-name default-directory))
+         (pattern (read-string "Grep: ")))
+    (grep (format "grep -rn --color=always \"%s\" %s" pattern dir))))
+
+
+;;; === APPEARANCE ===
+
+(custom-set-faces
+ '(default ((t (:background "#121212" :foreground "#EAEAEA"))))
+ '(cursor ((t (:background "#F59E0B"))))
+
+ '(font-lock-comment-face ((t (:foreground "#8A8A8D" :italic t))))
+ '(font-lock-comment-delimiter-face ((t (:foreground "#737373" :italic t))))
+ '(font-lock-string-face ((t (:foreground "#EAEAEA"))))
+ '(font-lock-doc-face ((t (:foreground "#BEBEBE" :italic t))))
+ '(font-lock-number-face ((t (:foreground "#FBBF24"))))
+ '(font-lock-keyword-face ((t (:foreground "#059669" :bold t))))
+ '(font-lock-function-name-face ((t (:foreground "#DC2626"))))
+ '(font-lock-type-face ((t (:foreground "#FBBF24"))))
+ '(font-lock-constant-face ((t (:foreground "#D97706"))))
+ '(font-lock-builtin-face ((t (:foreground "#F59E0B"))))
+ '(font-lock-variable-name-face ((t (:foreground "#EAEAEA"))))
+ '(font-lock-preprocessor-face ((t (:foreground "#FBBF24" :bold t))))
+ '(font-lock-warning-face ((t (:foreground "#DC2626" :background "#262626" :bold t))))
+
+ '(hl-line ((t (:background "#212121"))))
+ '(region ((t (:background "#333333" :foreground "#FFFFFF"))))
+ '(highlight ((t (:background "#262626"))))
+ '(fringe ((t (:background "#121212" :foreground "#333333"))))
+ '(vertical-border ((t (:foreground "#333333"))))
+
+ '(mode-line ((t (:background "#212121" :foreground "#EAEAEA" :box (:line-width 1 :color "#333333")))))
+ '(mode-line-inactive ((t (:background "#0D0D0D" :foreground "#8A8A8D" :box (:line-width 1 :color "#262626")))))
+
+ '(isearch ((t (:background "#F59E0B" :foreground "#121212" :bold t))))
+ '(lazy-highlight ((t (:background "#3B82F6" :foreground "#121212"))))
+ '(match ((t (:background "#8D20B2" :foreground "#121212" :bold t))))
+
+ '(minibuffer-prompt ((t (:foreground "#3B82F6" :bold t)))))
+
+;; Line numbers
+(when (fboundp 'display-line-numbers-mode)
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+  (add-hook 'text-mode-hook 'display-line-numbers-mode))
+
+;; Font
+(add-to-list 'default-frame-alist '(font . "JetBrains Mono-12"))
+
+;;; === EDITING ===
+
+(electric-pair-mode 1)
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+(setq tab-width 4)
+(setq-default indent-tabs-mode nil)
+(setq-default standard-indent 4)
+(setq-default c-basic-offset 4)
+(setq-default js-indent-level 4)
+(setq-default python-indent-offset 4)
+
+;;; === KEYBINDS ===
+
+;; Outras funções
+(global-set-key (kbd "C-c g") 'my-grep-rn)
+(global-set-key (kbd "C-c s") 'my-git-status)
+(global-set-key (kbd "C-c l") 'my-git-log)
+
+;;; === FALLBACK KEYS ===
+(defun display-warning (&rest _args) nil)
+(setq warning-minimum-level :emergency)
+(global-set-key (kbd "C-c c") 'compile)
+(global-set-key (kbd "C-s") 'isearch-forward)
+(global-set-key (kbd "C-x C-s") 'save-buffer)
+(global-set-key (kbd "C-x C-f") 'find-file)  ;; Completion nativa
+(global-set-key (kbd "C-x k") 'kill-buffer)
+(global-set-key (kbd "C-x b") 'switch-to-buffer)
+(global-set-key (kbd "C-c x") 'execute-extended-command)
+(global-set-key (kbd "C-x d") 'dired)
+(global-set-key (kbd "C-x C-d") 'dired-other-window)
+(global-set-key (kbd "C-x C-c") (lambda () (interactive) (save-buffer) (kill-buffer)))
+
+;;; === LEADER KEY (SPC) ===
+
+(defvar my-leader-map (make-sparse-keymap)
+  "Keymap para o leader (SPC), estilo which-key do nvim.")
+
+(evil-define-key '(normal motion) 'global (kbd "SPC") my-leader-map)
+
+;; --- Arquivo / buffer ---
+(define-key my-leader-map (kbd "w w") 'save-buffer)
+(define-key my-leader-map (kbd "w q") 'evil-quit)
+(define-key my-leader-map (kbd "e")   'dired-jump)
+(define-key my-leader-map (kbd "n")   (lambda () (interactive) (switch-to-buffer (generate-new-buffer "*new*"))))
+(define-key my-leader-map (kbd "q")   'kill-current-buffer)
+(define-key my-leader-map (kbd "f")   'find-file)   ;; <leader>f -> C-x C-f
+(define-key my-leader-map (kbd "g")   'my-grep-rn)  ;; <leader>g -> C-c g
+
+;; --- Splits ---
+(define-key my-leader-map (kbd "w v") 'split-window-right)
+(define-key my-leader-map (kbd "w s") 'split-window-below)
+
+;; --- Navegação entre janelas ---
+(define-key my-leader-map (kbd "w h") 'evil-window-left)
+(define-key my-leader-map (kbd "w j") 'evil-window-down)
+(define-key my-leader-map (kbd "w k") 'evil-window-up)
+(define-key my-leader-map (kbd "w l") 'evil-window-right)
+
+(setq explicit-bash-args '("--login" "-i"))
+
+(define-key my-leader-map (kbd "t")
+  (lambda ()
+    (interactive)
+    (let ((process-environment (cons "TERM=dumb" process-environment)))
+      (split-window-below -12)
+      (other-window 1)
+      (shell (generate-new-buffer-name "*bash*")))))
+
+;;; === CLIPBOARD (sistema <-> Emacs) ===
+(setq select-enable-clipboard t)   ;; sincroniza kill-ring com o clipboard do SO
+(setq select-enable-primary t)     ;; suporte à seleção primária (X11/"* register)
+
+;;; === OPTIMIZATIONS ===
+
+(defun my-minibuffer-setup ()
+  (setq gc-cons-threshold 800000000))
+
+(defun my-minibuffer-exit ()
+  (setq gc-cons-threshold 400000000))
+
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+(add-hook 'minibuffer-exit-hook 'my-minibuffer-exit)
+
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+(setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save/" t)))
+
+(defun my-always-yes (&rest args) t)
+(advice-add 'yes-or-no-p :override 'my-always-yes)
+(setq confirm-nonexistent-file-or-buffer nil)
+
+;;; === STARTUP ===
+
+(defun my-show-startup-time ()
+  (let ((elapsed (float-time (time-subtract (current-time) my-emacs-start-time))))
+    (message "Emacs loaded in %.2f seconds" elapsed)))
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold 80000000)
+            (setq auto-save-default t)
+            (my-show-startup-time)))
+
+(add-hook 'emacs-startup-hook 'toggle-frame-maximized)
+
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(when (file-exists-p custom-file)
+  (load custom-file))
+
+(message "Starting Emacs...")
